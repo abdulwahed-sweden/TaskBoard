@@ -145,4 +145,18 @@ def create_organizations_FieldDefinition(**kwargs):
     defaults.setdefault("project_type", create_organizations_ProjectType())
     return organizations_models.FieldDefinition.objects.create(**defaults)
 
+
+def create_organizations_StatusDefinition(**kwargs):
+    name = kwargs.pop("name", "status_%s" % random_string(4))
+    defaults = {
+        "name": name,
+        "label": name.replace("_", " ").title(),
+        "order": 0,
+        "is_default": False,
+        "is_terminal": False,
+    }
+    defaults.update(**kwargs)
+    defaults.setdefault("project_type", create_organizations_ProjectType())
+    return organizations_models.StatusDefinition.objects.create(**defaults)
+
   

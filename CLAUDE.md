@@ -11,13 +11,14 @@ API (Django REST Framework). It was originally scaffolded with Django Builder
 and has since been upgraded to Django 6 and cleaned up.
 
 It is being evolved into a multi-tenant work platform (see `ROADMAP.md`).
-**Phases 1–3 have landed:** users belong to organizations (with a per-session
+**Phases 1–4 have landed:** users belong to organizations (with a per-session
 "active org"), organizations contain projects, and every task lives in a
 project. Task access is **membership-scoped** — you see/act on tasks in projects
 inside orgs you belong to, gated by role (viewers are read-only). A project may
-have a **`ProjectType`** that declares a custom-field schema; each task carries
-validated domain data in a `custom_fields` JSONField. Phase 4 (configurable
-status workflows) is next.
+have a **`ProjectType`** that declares a custom-field schema and an ordered
+**status workflow**; each task carries validated domain data in a
+`custom_fields` JSONField and a workflow `status` (with `is_done` auto-synced
+from terminal statuses). Phase 5 (collaboration: comments & activity) is next.
 
 The codebase is intentionally small. Prefer keeping it that way: add behaviour
 where it belongs rather than introducing new layers or abstractions. Tenancy
@@ -48,17 +49,18 @@ TaskBoard/
 │   ├── wsgi.py / asgi.py
 │   └── consumers.py / routing.py   # Channels stubs (unused, see "Known quirks")
 ├── organizations/            # multi-tenancy + project types
-│   ├── models.py             # Organization, Membership, Project, ProjectType, FieldDefinition
+│   ├── models.py             # Organization, Membership, Project, ProjectType, FieldDefinition, StatusDefinition
 │   ├── services.py           # create_personal_organization (shared w/ migration)
 │   ├── permissions.py        # has_role, RequireRoleMixin
 │   ├── custom_fields.py      # validate_custom_fields (form + API + import reuse it)
+│   ├── workflow.py           # validate_status / default_status / is_terminal_status
 │   ├── sessions.py           # active-org session helpers
 │   ├── context_processors.py # exposes active_organization / user_organizations
 │   ├── views.py              # SwitchOrganizationView, ActiveOrganizationMixin, Project views
 │   ├── urls.py               # /organizations/switch/, /organizations/projects/...
 │   ├── admin.py              # Organization/Membership/Project/ProjectType admin
 │   ├── templates/organizations/  # project_list / project_detail / project_form
-│   └── migrations/           # ...0003 Project, 0004 ProjectType, 0005 seed types
+│   └── migrations/           # ...0004 ProjectType, 0005 seed types, 0006 StatusDefinition, 0007 seed workflows
 ├── tasks/                    # the work-item app (membership-scoped)
 │   ├── models.py             # Task model (FK to organizations.Project)
 │   ├── views.py              # CBVs: OrgScopedTaskMixin, TaskWriteRoleMixin, ...
@@ -147,27 +149,42 @@ The `organizations` app holds the tenancy layer.
   Jobs); add/edit types via the admin (`ProjectType` with a `FieldDefinition`
   inline). Switching a project's type does **not** rewrite existing tasks'
   stored data — values are preserved and only re-validated on the next edit.
+- **Status workflows** (`StatusDefinition`): a `ProjectType` also owns ordered
+  statuses (`name`, `label`, `order`, `is_default`, `is_terminal`).
+  **`organizations/workflow.validate_status(project_type, status)` is the single
+  source of truth**: a typed task's status must be one of the type's statuses
+  (empty resolves to the default); an untyped project (no statuses) requires an
+  empty status. Any status in the set is allowed — no transition restrictions
+  yet. `is_done` is **derived**: `Task.save()` sets it from whether the status
+  is terminal (for typed projects); untyped projects edit `is_done` directly.
+  Two workflows are seeded (Software Tasks: Backlog→…→Done; Translation Jobs:
+  New→…→Delivered); edit via the `StatusDefinition` admin inline.
 
 ### The `Task` model
 `tasks/models.py` defines a single `Task` with: `project` (FK to
 `organizations.Project`, **required** — every task lives in a project), `owner`
 (FK to `auth.User`, nullable — the creator), `title`, `notes`, `is_done`,
+`status` (CharField, validated against the project type's workflow),
 `due_date`, `custom_fields` (JSONField, validated against the project type),
 plus auto-managed `created`/`last_updated` timestamps. Default ordering is
-newest-first (`-created`). `Task.clean()` validates `custom_fields` (attaching
-errors to the `custom_fields` field, for the admin/raw path) unless
+newest-first (`-created`). `Task.clean()` validates `custom_fields` and `status`
+(attaching errors to those fields, for the admin/raw path) unless
 `_skip_custom_field_validation` is set — `TaskForm` sets that because it
-validates onto its own per-field widgets. The model exposes `get_absolute_url`,
-`get_update_url`, `get_delete_url` and a static `get_create_url`, which the
-templates rely on — keep these in sync with `tasks/urls.py` if you rename routes.
+validates onto its own widgets. `Task.save()` keeps `is_done` in sync with a
+terminal status. `status_label` returns the human label. The model exposes
+`get_absolute_url`, `get_update_url`, `get_delete_url` and a static
+`get_create_url`, which the templates rely on — keep these in sync with
+`tasks/urls.py` if you rename routes.
 
 ### Web layer
 Plain Django generic class-based views (`ListView`, `CreateView`, `DetailView`,
 `UpdateView`, `DeleteView`) in `tasks/views.py`. Create/Update use
 `forms.TaskForm` (which takes a `projects` queryset limiting the selectable
-project, and **dynamically adds one `custom_<name>` field per the project type's
-`FieldDefinition`s**, rendering automatically via `{{ form.as_div }}`). The
-target project is the submitted one when bound, else the instance/initial — so
+project, **dynamically adds one `custom_<name>` field per the project type's
+`FieldDefinition`s**, and for a typed project swaps the `is_done` checkbox for a
+required `status` dropdown driven by the type's workflow; all render via
+`{{ form.as_div }}`). The target project is the submitted one when bound, else
+the instance/initial — so
 without JS, changing the project dropdown re-renders the right custom fields on
 submit. Templates live in `tasks/templates/tasks/` and extend
 `templates/base.html`.
@@ -215,9 +232,10 @@ authentication**, so unauthenticated requests return `403`. Both viewsets are
 makes writes require `member` in the object's org (reads need `viewer`), and the
 serializers reject filing a task/project into an org the user can't write to.
 `owner` is set from the request on create and is read-only, as are
-`created`/`last_updated`. `TaskSerializer` exposes `custom_fields` and validates
-it (via the shared `validate_custom_fields`) whenever the `project` or
-`custom_fields` changes.
+`created`/`last_updated`. `TaskSerializer` exposes `custom_fields` and `status`
+and validates them (via the shared `validate_custom_fields` / `validate_status`)
+whenever the `project`, `custom_fields`, or `status` changes; `is_done` is
+derived on save (read-driven for typed tasks).
 
 ### URL names
 App namespace is `tasks`. Web routes: `tasks:Task_list`, `tasks:Task_create`,
@@ -248,10 +266,11 @@ configure static file serving, and run `manage.py check --deploy`.
 - `test_helpers.py` holds small factory functions (e.g. `create_tasks_Task`,
   `create_User`, `create_organizations_Organization`,
   `create_organizations_Membership`, `create_organizations_Project`,
-  `create_organizations_ProjectType`, `create_organizations_FieldDefinition`).
-  Reuse them in new tests instead of building objects inline. The shared
-  custom-field validator has focused tests in
-  `tests/organizations/test_custom_fields.py`. Tests live under
+  `create_organizations_ProjectType`, `create_organizations_FieldDefinition`,
+  `create_organizations_StatusDefinition`). Reuse them in new tests instead of
+  building objects inline. The shared validators have focused tests in
+  `tests/organizations/test_custom_fields.py` and
+  `tests/organizations/test_workflow.py`. Tests live under
   `tests/<app>/` (e.g. `tests/tasks/`, `tests/organizations/`). Note
   `create_tasks_Task` auto-creates a project (and, for a real owner, an org
   membership) when none is passed, so the task is visible under org-scoping;

@@ -15,6 +15,9 @@ class Task(models.Model):
     title = models.CharField(max_length=120)
     notes = models.TextField(blank=True, default='')
     is_done = models.BooleanField(default=False)
+    # Workflow status, validated against the project type's status definitions.
+    # Empty for projects whose type has no workflow (is_done is used directly).
+    status = models.CharField(max_length=60, blank=True, default='')
     due_date = models.DateField(null=True, blank=True)
     # Domain-specific data validated against the project's type schema.
     custom_fields = models.JSONField(default=dict, blank=True)
@@ -24,6 +27,19 @@ class Task(models.Model):
 
     def __str__(self):
         return self.title
+
+    @property
+    def status_label(self):
+        """Human label for the current status (falls back to the raw value)."""
+        if not self.status or not self.project_id:
+            return self.status
+        project_type = self.project.project_type
+        if project_type is None:
+            return self.status
+        definition = project_type.status_definitions.filter(
+            name=self.status
+        ).first()
+        return definition.label if definition else self.status
 
     def clean(self):
         """Validate custom fields against the project's type so model-level
@@ -37,6 +53,7 @@ class Task(models.Model):
         from django.core.exceptions import ValidationError
 
         from organizations.custom_fields import validate_custom_fields
+        from organizations.workflow import validate_status
 
         if getattr(self, "_skip_custom_field_validation", False):
             return
@@ -47,6 +64,22 @@ class Task(models.Model):
             )
         except ValidationError as exc:
             raise ValidationError({"custom_fields": exc.messages})
+        try:
+            self.status = validate_status(project_type, self.status)
+        except ValidationError as exc:
+            raise ValidationError({"status": exc.messages})
+
+    def save(self, *args, **kwargs):
+        """Keep is_done in sync with status on every write path: a typed task's
+        completion flag is derived from whether its status is terminal; untyped
+        tasks keep is_done as set directly."""
+        from organizations.workflow import is_terminal_status
+
+        if self.project_id:
+            project_type = self.project.project_type
+            if project_type is not None and project_type.status_definitions.exists():
+                self.is_done = is_terminal_status(project_type, self.status)
+        super().save(*args, **kwargs)
 
     @staticmethod
     def get_create_url():

@@ -24,7 +24,10 @@
   {% for object in object_list %}
     <li class="item">
       <a href="{{ object.get_absolute_url }}">{{ object }}</a>
-      <span class="muted">{{ object.project.name }}</span>
+      <span class="muted">
+        {{ object.project.name }} ·
+        {% if object.status %}{{ object.status_label }}{% else %}{{ object.is_done|yesno:"Done,Open" }}{% endif %}
+      </span>
     </li>
   {% empty %}
     <li class="empty">No tasks here yet.</li>

@@ -73,6 +73,32 @@ class FieldDefinition(models.Model):
         return f"{self.project_type}.{self.name}"
 
 
+class StatusDefinition(models.Model):
+    """One status in a :class:`ProjectType`'s workflow. The ordered set of
+    definitions is the workflow a typed task's ``status`` must belong to."""
+
+    project_type = models.ForeignKey(
+        ProjectType, on_delete=models.CASCADE, related_name="status_definitions"
+    )
+    name = models.SlugField(max_length=60)  # the value stored in Task.status
+    label = models.CharField(max_length=120)
+    order = models.PositiveIntegerField(default=0)
+    is_default = models.BooleanField(default=False)  # status for new tasks
+    is_terminal = models.BooleanField(default=False)  # drives Task.is_done
+
+    class Meta:
+        ordering = ["order", "id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["project_type", "name"],
+                name="unique_status_name_per_project_type",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.project_type}:{self.name}"
+
+
 class Project(models.Model):
     """A container for work (tasks) inside an organization."""
 

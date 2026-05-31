@@ -8,6 +8,7 @@
   <tr><td>Project</td><td><a href="{{ object.project.get_absolute_url }}">{{ object.project.name }}</a></td></tr>
   <tr><td>Title</td><td>{{ object.title }}</td></tr>
   <tr><td>Notes</td><td>{{ object.notes|linebreaksbr }}</td></tr>
+  {% if object.status %}<tr><td>Status</td><td>{{ object.status_label }}</td></tr>{% endif %}
   <tr><td>Done</td><td>{{ object.is_done|yesno:"Yes,No" }}</td></tr>
   <tr><td>Due date</td><td>{{ object.due_date|default:"—" }}</td></tr>
   <tr><td>Created</td><td>{{ object.created }}</td></tr>

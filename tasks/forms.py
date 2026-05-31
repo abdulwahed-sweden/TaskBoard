@@ -4,6 +4,7 @@ from django.core.exceptions import ValidationError
 
 from organizations.custom_fields import validate_custom_fields
 from organizations.models import FieldDefinition, Project
+from organizations.workflow import default_status, status_definitions_for
 
 from . import models
 
@@ -18,12 +19,14 @@ class TaskForm(forms.ModelForm):
             "title",
             "notes",
             "is_done",
+            "status",
             "due_date",
         ]
 
     def __init__(self, *args, projects=None, **kwargs):
-        """``projects`` limits the selectable projects. Custom fields are added
-        dynamically from the (bound or instance) project's type schema."""
+        """``projects`` limits the selectable projects. Custom fields and the
+        status dropdown are added dynamically from the (bound or instance)
+        project's type."""
         super().__init__(*args, **kwargs)
         if projects is not None:
             self.fields["project"].queryset = projects
@@ -31,7 +34,9 @@ class TaskForm(forms.ModelForm):
         # the model to skip its own (raw-keyed) custom-field validation.
         self.instance._skip_custom_field_validation = True
         self._custom_definitions = {}
-        self._build_custom_fields(self._resolve_project())
+        project = self._resolve_project()
+        self._build_custom_fields(project)
+        self._build_status_field(project)
 
     # -- dynamic custom fields ------------------------------------------------
 
@@ -60,6 +65,21 @@ class TaskForm(forms.ModelForm):
             if definition.name in stored:
                 field.initial = stored[definition.name]
             self.fields[f"{CUSTOM_PREFIX}{definition.name}"] = field
+
+    def _build_status_field(self, project):
+        """Typed projects pick from their workflow (and is_done is derived);
+        untyped projects keep the is_done checkbox and have no status."""
+        definitions = status_definitions_for(project)
+        if not definitions:
+            self.fields.pop("status", None)
+            return
+        self.fields.pop("is_done", None)
+        self.fields["status"] = forms.ChoiceField(
+            label="Status",
+            required=True,
+            choices=[(d.name, d.label) for d in definitions],
+            initial=self.instance.status or default_status(project.project_type),
+        )
 
     def _form_field_for(self, definition):
         # Required is enforced centrally by validate_custom_fields, so the form
