@@ -125,4 +125,24 @@ def create_organizations_Project(**kwargs):
     defaults.setdefault("organization", create_organizations_Organization())
     return organizations_models.Project.objects.create(**defaults)
 
+
+def create_organizations_ProjectType(**kwargs):
+    defaults = {
+        "name": "%s Type" % random_string(5),
+    }
+    defaults.update(**kwargs)
+    return organizations_models.ProjectType.objects.create(**defaults)
+
+
+def create_organizations_FieldDefinition(**kwargs):
+    defaults = {
+        "name": "field_%s" % random_string(4),
+        "label": "Field",
+        "field_type": organizations_models.FieldDefinition.FieldType.TEXT,
+        "required": False,
+    }
+    defaults.update(**kwargs)
+    defaults.setdefault("project_type", create_organizations_ProjectType())
+    return organizations_models.FieldDefinition.objects.create(**defaults)
+
   

@@ -26,13 +26,25 @@ class MembershipAdmin(admin.ModelAdmin):
 
 
 class ProjectAdmin(admin.ModelAdmin):
-    list_display = ["name", "organization", "created"]
-    list_filter = ["organization"]
+    list_display = ["name", "organization", "project_type", "created"]
+    list_filter = ["organization", "project_type"]
     search_fields = ["name", "organization__name"]
     autocomplete_fields = ["organization"]
     readonly_fields = ["created"]
 
 
+class FieldDefinitionInline(admin.TabularInline):
+    model = models.FieldDefinition
+    extra = 1
+
+
+class ProjectTypeAdmin(admin.ModelAdmin):
+    list_display = ["name"]
+    search_fields = ["name"]
+    inlines = [FieldDefinitionInline]
+
+
 admin.site.register(models.Organization, OrganizationAdmin)
 admin.site.register(models.Membership, MembershipAdmin)
 admin.site.register(models.Project, ProjectAdmin)
+admin.site.register(models.ProjectType, ProjectTypeAdmin)

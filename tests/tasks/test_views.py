@@ -4,7 +4,7 @@ import test_helpers
 from django.urls import reverse
 from rest_framework.test import APIClient
 
-from organizations.models import Membership
+from organizations.models import Membership, ProjectType
 from organizations.sessions import SESSION_KEY
 from tasks.models import Task
 
@@ -156,6 +156,56 @@ def tests_Task_delete_view_forbidden_for_viewer(client):
     assert Task.objects.filter(pk=task.pk).exists()
 
 
+# --- custom fields (web, end-to-end) ----------------------------------------
+
+def _typed_project(org, type_name):
+    return test_helpers.create_organizations_Project(
+        organization=org, project_type=ProjectType.objects.get(name=type_name)
+    )
+
+
+def tests_Task_create_form_renders_custom_fields(client):
+    user, org, _ = _member(client)
+    project = _typed_project(org, "Software Tasks")
+    response = client.get(reverse("tasks:Task_create"), {"project": project.pk})
+    assert response.status_code == 200
+    body = response.content.decode("utf-8")
+    assert "Priority" in body
+    assert "Component" in body
+
+
+def tests_Task_create_with_custom_fields_saves_them(client):
+    user, org, _ = _member(client)
+    project = _typed_project(org, "Software Tasks")
+    response = client.post(
+        reverse("tasks:Task_create"),
+        {
+            "project": project.pk,
+            "title": "typed-task",
+            "custom_priority": "High",
+            "custom_component": "billing",
+        },
+    )
+    assert response.status_code == 302
+    task = Task.objects.get(title="typed-task")
+    assert task.custom_fields == {"priority": "High", "component": "billing"}
+
+
+def tests_Task_create_missing_required_custom_field_errors(client):
+    user, org, _ = _member(client)
+    project = _typed_project(org, "Software Tasks")
+    response = client.post(
+        reverse("tasks:Task_create"),
+        {
+            "project": project.pk,
+            "title": "no-priority",
+            "custom_component": "billing",
+        },
+    )
+    assert response.status_code == 200  # re-rendered with errors
+    assert not Task.objects.filter(title="no-priority").exists()
+
+
 # --- REST API scoping -------------------------------------------------------
 
 def _api_for(role=Membership.Role.MEMBER):
@@ -227,6 +277,86 @@ def tests_api_viewer_cannot_update_task():
         format="json",
     )
     assert response.status_code == 403
+
+
+def _api_typed_project(org, type_name):
+    return test_helpers.create_organizations_Project(
+        organization=org, project_type=ProjectType.objects.get(name=type_name)
+    )
+
+
+def tests_api_create_with_custom_fields():
+    api, user, org, _ = _api_for()
+    project = _api_typed_project(org, "Translation Jobs")
+    response = api.post(
+        reverse("tasks:task-list"),
+        {
+            "title": "job1",
+            "project": project.pk,
+            "custom_fields": {
+                "source_lang": "en",
+                "target_lang": "sv",
+                "word_count": 1200,
+                "deadline": "2025-01-01",
+            },
+        },
+        format="json",
+    )
+    assert response.status_code == 201
+    task = Task.objects.get(title="job1")
+    assert task.custom_fields["source_lang"] == "en"
+    assert task.custom_fields["word_count"] == 1200
+    assert task.custom_fields["deadline"] == "2025-01-01"
+
+
+def tests_api_create_rejects_unknown_custom_field():
+    api, user, org, _ = _api_for()
+    project = _api_typed_project(org, "Translation Jobs")
+    response = api.post(
+        reverse("tasks:task-list"),
+        {
+            "title": "bad",
+            "project": project.pk,
+            "custom_fields": {"source_lang": "en", "target_lang": "sv", "bogus": 1},
+        },
+        format="json",
+    )
+    assert response.status_code == 400
+    assert not Task.objects.filter(title="bad").exists()
+
+
+def tests_api_create_rejects_missing_required_custom_field():
+    api, user, org, _ = _api_for()
+    project = _api_typed_project(org, "Translation Jobs")
+    response = api.post(
+        reverse("tasks:task-list"),
+        {
+            "title": "bad",
+            "project": project.pk,
+            "custom_fields": {"target_lang": "sv"},  # source_lang missing
+        },
+        format="json",
+    )
+    assert response.status_code == 400
+
+
+def tests_api_create_rejects_bad_custom_field_type():
+    api, user, org, _ = _api_for()
+    project = _api_typed_project(org, "Translation Jobs")
+    response = api.post(
+        reverse("tasks:task-list"),
+        {
+            "title": "bad",
+            "project": project.pk,
+            "custom_fields": {
+                "source_lang": "en",
+                "target_lang": "sv",
+                "word_count": "lots",  # not a number
+            },
+        },
+        format="json",
+    )
+    assert response.status_code == 400
 
 
 # --- accounts (unchanged behaviour) -----------------------------------------
