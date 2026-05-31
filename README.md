@@ -22,7 +22,7 @@ TaskBoard manages **any kind of work** — software tasks, translation jobs,
 support tickets — without writing new code per domain. A generic work item
 (`Task`) takes its shape from a **project type** that declares custom fields and
 a status workflow. It was grown from a single-user task list into a team
-platform over ten phases.
+platform over ten phases (see [`ROADMAP.md`](ROADMAP.md)).
 
 ## Features
 
