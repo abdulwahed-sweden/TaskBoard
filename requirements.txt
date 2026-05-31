@@ -1,2 +1,2 @@
 Django==6.0.5
-djangorestframework>=3.16
+djangorestframework==3.17.1
