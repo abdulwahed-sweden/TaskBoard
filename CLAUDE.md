@@ -11,14 +11,16 @@ API (Django REST Framework). It was originally scaffolded with Django Builder
 and has since been upgraded to Django 6 and cleaned up.
 
 It is being evolved into a multi-tenant work platform (see `ROADMAP.md`).
-**Phases 1–4 have landed:** users belong to organizations (with a per-session
+**Phases 1–5 have landed:** users belong to organizations (with a per-session
 "active org"), organizations contain projects, and every task lives in a
 project. Task access is **membership-scoped** — you see/act on tasks in projects
 inside orgs you belong to, gated by role (viewers are read-only). A project may
 have a **`ProjectType`** that declares a custom-field schema and an ordered
 **status workflow**; each task carries validated domain data in a
 `custom_fields` JSONField and a workflow `status` (with `is_done` auto-synced
-from terminal statuses). Phase 5 (collaboration: comments & activity) is next.
+from terminal statuses). Tasks support **comments** and an append-only
+**activity log** (created/updated/status-change/assignment), and `owner` is an
+editable **assignee**. Phase 6 (data import) is next.
 
 The codebase is intentionally small. Prefer keeping it that way: add behaviour
 where it belongs rather than introducing new layers or abstractions. Tenancy
@@ -62,14 +64,15 @@ TaskBoard/
 │   ├── templates/organizations/  # project_list / project_detail / project_form
 │   └── migrations/           # ...0004 ProjectType, 0005 seed types, 0006 StatusDefinition, 0007 seed workflows
 ├── tasks/                    # the work-item app (membership-scoped)
-│   ├── models.py             # Task model (FK to organizations.Project)
-│   ├── views.py              # CBVs: OrgScopedTaskMixin, TaskWriteRoleMixin, ...
+│   ├── models.py             # Task, Comment, Activity
+│   ├── activity.py           # log_created / log_changes / snapshot (activity log)
+│   ├── views.py              # CBVs: OrgScopedTaskMixin, TaskWriteRoleMixin, AddCommentView
 │   ├── api.py                # DRF Task + Project viewsets (org-scoped)
 │   ├── serializers.py        # DRF serializers
-│   ├── forms.py              # ModelForm (project-aware)
-│   ├── admin.py              # admin registration
+│   ├── forms.py              # TaskForm (project/assignee/custom/status-aware), CommentForm
+│   ├── admin.py              # Task / Comment / Activity admin
 │   ├── urls.py               # app urlconf (web + api routes)
-│   ├── migrations/           # 0001, 0002 add project, 0003 backfill, 0004 require
+│   ├── migrations/           # ...0005 custom_fields, 0006 status, 0007 Comment+Activity
 │   └── templates/tasks/      # task_list / task_detail / task_form / task_confirm_delete
 ├── templates/                # project-level templates (base.html, index.html, htmx/)
 └── tests/                    # tests/tasks/ and tests/organizations/
@@ -161,12 +164,12 @@ The `organizations` app holds the tenancy layer.
   New→…→Delivered); edit via the `StatusDefinition` admin inline.
 
 ### The `Task` model
-`tasks/models.py` defines a single `Task` with: `project` (FK to
-`organizations.Project`, **required** — every task lives in a project), `owner`
-(FK to `auth.User`, nullable — the creator), `title`, `notes`, `is_done`,
-`status` (CharField, validated against the project type's workflow),
-`due_date`, `custom_fields` (JSONField, validated against the project type),
-plus auto-managed `created`/`last_updated` timestamps. Default ordering is
+`tasks/models.py` defines `Task` with: `project` (FK to `organizations.Project`,
+**required** — every task lives in a project), `owner` (FK to `auth.User`,
+nullable — the **assignee**, editable; defaults to the creator), `title`,
+`notes`, `is_done`, `status` (CharField, validated against the project type's
+workflow), `due_date`, `custom_fields` (JSONField, validated against the project
+type), plus auto-managed `created`/`last_updated` timestamps. Default ordering is
 newest-first (`-created`). `Task.clean()` validates `custom_fields` and `status`
 (attaching errors to those fields, for the admin/raw path) unless
 `_skip_custom_field_validation` is set — `TaskForm` sets that because it
@@ -176,18 +179,29 @@ terminal status. `status_label` returns the human label. The model exposes
 `get_create_url`, which the templates rely on — keep these in sync with
 `tasks/urls.py` if you rename routes.
 
+### Collaboration: comments & activity
+`Comment` (task, author, body, created) is discussion on a task; `Activity` is an
+**append-only** log of lifecycle events (`created`, `updated`, `status_changed`,
+`assigned`) with an optional `detail` JSON (e.g. `{"from","to"}`).
+**`tasks/activity.py` records activity from the app's write paths** — `snapshot`
+captures (status, owner) before a save; `log_created`/`log_changes` are called
+from `TaskCreateView`/`TaskUpdateView` (web) and `TaskViewSet.perform_create`/
+`perform_update` (API). Admin/raw ORM saves intentionally don't log. Both are
+surfaced on the task detail page; `Activity` admin is read-only (append-only).
+Posting a comment (`AddCommentView`, route `tasks:Task_comment`) is org-scoped
+and requires `member`+ (viewers can read but not comment).
+
 ### Web layer
 Plain Django generic class-based views (`ListView`, `CreateView`, `DetailView`,
 `UpdateView`, `DeleteView`) in `tasks/views.py`. Create/Update use
-`forms.TaskForm` (which takes a `projects` queryset limiting the selectable
-project, **dynamically adds one `custom_<name>` field per the project type's
-`FieldDefinition`s**, and for a typed project swaps the `is_done` checkbox for a
-required `status` dropdown driven by the type's workflow; all render via
-`{{ form.as_div }}`). The target project is the submitted one when bound, else
-the instance/initial — so
-without JS, changing the project dropdown re-renders the right custom fields on
-submit. Templates live in `tasks/templates/tasks/` and extend
-`templates/base.html`.
+`forms.TaskForm` (which takes a `projects` queryset and an `assignees` queryset
+limiting the selectable project and owner; **dynamically adds one `custom_<name>`
+field per the project type's `FieldDefinition`s**; and for a typed project swaps
+the `is_done` checkbox for a required `status` dropdown driven by the type's
+workflow — all render via `{{ form.as_div }}`). The target project is the
+submitted one when bound, else the instance/initial — so without JS, changing
+the project dropdown re-renders the right custom fields on submit. Templates
+live in `tasks/templates/tasks/` and extend `templates/base.html`.
 
 **Task views require login and are membership-scoped** (this replaced the old
 owner-scoping in Phase 2):
@@ -196,10 +210,12 @@ owner-scoping in Phase 2):
   in another org 404s on detail/update/delete rather than leaking.
 - `TaskListView` (via `ActiveOrganizationMixin`) shows tasks in the **active
   org**, with an optional `?project=<id>` filter (constrained to the active org).
-- Writes require `member`+: `TaskCreateView` gates on the active org and still
-  sets `owner=request.user` in `form_valid`; `TaskUpdateView`/`TaskDeleteView`
-  use `TaskWriteRoleMixin`, which 403s if the user lacks `member` in the task's
-  org (so a `viewer` can read the detail page but not edit/delete).
+- Writes require `member`+: `TaskCreateView` gates on the active org and
+  defaults `owner` to the request user only when the assignee field is left
+  blank; `TaskUpdateView`/`TaskDeleteView`/`AddCommentView` use
+  `TaskWriteRoleMixin` (or an equivalent check), which 403s if the user lacks
+  `member` in the task's org (so a `viewer` can read the detail page and
+  comments but not edit/delete/comment).
 
 ### Accounts & profile
 Authentication uses Django's built-in views, wired in `TaskBoard/urls.py`:
@@ -231,15 +247,19 @@ authentication**, so unauthenticated requests return `403`. Both viewsets are
 (never `.all()`), so foreign objects 404. The `IsOrgMemberForWrites` permission
 makes writes require `member` in the object's org (reads need `viewer`), and the
 serializers reject filing a task/project into an org the user can't write to.
-`owner` is set from the request on create and is read-only, as are
-`created`/`last_updated`. `TaskSerializer` exposes `custom_fields` and `status`
-and validates them (via the shared `validate_custom_fields` / `validate_status`)
-whenever the `project`, `custom_fields`, or `status` changes; `is_done` is
-derived on save (read-driven for typed tasks).
+`owner` (assignee) is **writable** but defaults to the request user on create
+(`perform_create`); a supplied owner is validated to be a member of the
+project's org. `created`/`last_updated` are read-only. `TaskSerializer` exposes
+`custom_fields` and `status` and validates them (via the shared
+`validate_custom_fields` / `validate_status`) whenever the `project`,
+`custom_fields`, or `status` changes; `is_done` is derived on save (read-driven
+for typed tasks). `perform_create`/`perform_update` record activity (see
+Collaboration).
 
 ### URL names
 App namespace is `tasks`. Web routes: `tasks:Task_list`, `tasks:Task_create`,
-`tasks:Task_detail`, `tasks:Task_update`, `tasks:Task_delete`. API routes
+`tasks:Task_detail`, `tasks:Task_update`, `tasks:Task_delete`,
+`tasks:Task_comment`. API routes
 (router): `tasks:task-list`/`tasks:task-detail`,
 `tasks:project-list`/`tasks:project-detail`. Project web routes live in the
 `organizations` namespace: `organizations:Project_list` / `_detail` / `_create`
@@ -267,10 +287,11 @@ configure static file serving, and run `manage.py check --deploy`.
   `create_User`, `create_organizations_Organization`,
   `create_organizations_Membership`, `create_organizations_Project`,
   `create_organizations_ProjectType`, `create_organizations_FieldDefinition`,
-  `create_organizations_StatusDefinition`). Reuse them in new tests instead of
-  building objects inline. The shared validators have focused tests in
-  `tests/organizations/test_custom_fields.py` and
-  `tests/organizations/test_workflow.py`. Tests live under
+  `create_organizations_StatusDefinition`, `create_tasks_Comment`). Reuse them in
+  new tests instead of building objects inline. The shared validators have
+  focused tests in `tests/organizations/test_custom_fields.py` and
+  `tests/organizations/test_workflow.py`; activity recording in
+  `tests/tasks/test_activity.py`. Tests live under
   `tests/<app>/` (e.g. `tests/tasks/`, `tests/organizations/`). Note
   `create_tasks_Task` auto-creates a project (and, for a real owner, an org
   membership) when none is passed, so the task is visible under org-scoping;

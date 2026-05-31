@@ -16,6 +16,7 @@ class TaskForm(forms.ModelForm):
         model = models.Task
         fields = [
             "project",
+            "owner",
             "title",
             "notes",
             "is_done",
@@ -23,13 +24,18 @@ class TaskForm(forms.ModelForm):
             "due_date",
         ]
 
-    def __init__(self, *args, projects=None, **kwargs):
-        """``projects`` limits the selectable projects. Custom fields and the
-        status dropdown are added dynamically from the (bound or instance)
-        project's type."""
+    def __init__(self, *args, projects=None, assignees=None, **kwargs):
+        """``projects`` limits the selectable projects and ``assignees`` the
+        selectable owner (to the org's members). Custom fields and the status
+        dropdown are added dynamically from the (bound or instance) project's
+        type."""
         super().__init__(*args, **kwargs)
         if projects is not None:
             self.fields["project"].queryset = projects
+        self.fields["owner"].label = "Assignee"
+        self.fields["owner"].required = False
+        if assignees is not None:
+            self.fields["owner"].queryset = assignees
         # This form validates custom fields onto its per-field widgets, so tell
         # the model to skip its own (raw-keyed) custom-field validation.
         self.instance._skip_custom_field_validation = True
@@ -124,3 +130,11 @@ class TaskForm(forms.ModelForm):
                 else:
                     self.add_error(None, f"{field_name}: {message}")
         return cleaned
+
+
+class CommentForm(forms.ModelForm):
+    class Meta:
+        model = models.Comment
+        fields = ["body"]
+        widgets = {"body": forms.Textarea(attrs={"rows": 3})}
+

@@ -6,6 +6,7 @@
 
 <table class="detail">
   <tr><td>Project</td><td><a href="{{ object.project.get_absolute_url }}">{{ object.project.name }}</a></td></tr>
+  <tr><td>Assignee</td><td>{{ object.owner|default:"Unassigned" }}</td></tr>
   <tr><td>Title</td><td>{{ object.title }}</td></tr>
   <tr><td>Notes</td><td>{{ object.notes|linebreaksbr }}</td></tr>
   {% if object.status %}<tr><td>Status</td><td>{{ object.status_label }}</td></tr>{% endif %}
@@ -23,5 +24,39 @@
   <a class="btn btn-danger" href="{{ object.get_delete_url }}">Delete</a>
   <a class="btn btn-secondary" href="{% url 'tasks:Task_list' %}">Back to list</a>
 </div>
+
+<h2>Comments</h2>
+<ul class="item-list">
+  {% for comment in comments %}
+    <li class="item" style="display:block">
+      <div class="muted">{{ comment.author|default:"Someone" }} · {{ comment.created }}</div>
+      <div>{{ comment.body|linebreaksbr }}</div>
+    </li>
+  {% empty %}
+    <li class="empty">No comments yet.</li>
+  {% endfor %}
+</ul>
+
+{% if can_comment %}
+<form method="post" action="{% url 'tasks:Task_comment' object.pk %}" class="stack">
+  {% csrf_token %}
+  {{ comment_form.as_div }}
+  <div class="btn-row">
+    <button type="submit" class="btn btn-primary">Add comment</button>
+  </div>
+</form>
+{% endif %}
+
+<h2>Activity</h2>
+<ul class="item-list">
+  {% for activity in activities %}
+    <li class="item" style="display:block">
+      <div>{{ activity.description }}</div>
+      <div class="muted">{{ activity.created }}</div>
+    </li>
+  {% empty %}
+    <li class="empty">No activity yet.</li>
+  {% endfor %}
+</ul>
 
 {% endblock %}

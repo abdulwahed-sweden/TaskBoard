@@ -19,6 +19,7 @@ class TaskAdmin(admin.ModelAdmin):
         "title",
         "notes",
         "is_done",
+        "status",
         "due_date",
         "owner",
     ]
@@ -28,5 +29,25 @@ class TaskAdmin(admin.ModelAdmin):
     ]
 
 
+class CommentAdmin(admin.ModelAdmin):
+    list_display = ["task", "author", "created"]
+    search_fields = ["body", "task__title"]
+    readonly_fields = ["created"]
+
+
+class ActivityAdmin(admin.ModelAdmin):
+    list_display = ["task", "actor", "action", "created"]
+    list_filter = ["action"]
+    readonly_fields = ["task", "actor", "action", "description", "detail", "created"]
+
+    def has_add_permission(self, request):
+        return False  # activity is append-only, recorded by the app
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+
 admin.site.register(models.Task, TaskAdmin)
+admin.site.register(models.Comment, CommentAdmin)
+admin.site.register(models.Activity, ActivityAdmin)
 

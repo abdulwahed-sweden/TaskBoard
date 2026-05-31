@@ -469,6 +469,66 @@ def tests_api_untyped_project_rejects_status():
     assert response.status_code == 400
 
 
+# --- comments & assignee ----------------------------------------------------
+
+def tests_comment_member_can_post(client):
+    user, org, project = _member(client)
+    task = test_helpers.create_tasks_Task(owner=user, project=project)
+    response = client.post(
+        reverse("tasks:Task_comment", args=[task.pk]), {"body": "hello team"}
+    )
+    assert response.status_code == 302
+    assert task.comments.filter(body="hello team").exists()
+    detail = client.get(reverse("tasks:Task_detail", args=[task.pk]))
+    assert "hello team" in detail.content.decode("utf-8")
+
+
+def tests_comment_viewer_forbidden(client):
+    user, org, project = _member(client, role=Membership.Role.VIEWER)
+    task = test_helpers.create_tasks_Task(owner=user, project=project)
+    response = client.post(
+        reverse("tasks:Task_comment", args=[task.pk]), {"body": "nope"}
+    )
+    assert response.status_code == 403
+    assert not task.comments.exists()
+
+
+def tests_comment_non_member_404(client):
+    _member(client)
+    foreign = test_helpers.create_tasks_Task()  # different org
+    response = client.post(
+        reverse("tasks:Task_comment", args=[foreign.pk]), {"body": "x"}
+    )
+    assert response.status_code == 404
+    assert not foreign.comments.exists()
+
+
+def tests_assignee_dropdown_limited_to_org_members(client):
+    user, org, project = _member(client)
+    member2 = test_helpers.create_User()
+    test_helpers.create_organizations_Membership(user=member2, organization=org)
+    outsider = test_helpers.create_User()
+    response = client.get(reverse("tasks:Task_create"), {"project": project.pk})
+    owner_qs = response.context["form"].fields["owner"].queryset
+    assert user in owner_qs
+    assert member2 in owner_qs
+    assert outsider not in owner_qs
+
+
+def tests_reassign_via_form(client):
+    user, org, project = _member(client)
+    other = test_helpers.create_User()
+    test_helpers.create_organizations_Membership(user=other, organization=org)
+    task = test_helpers.create_tasks_Task(owner=user, project=project)
+    response = client.post(
+        reverse("tasks:Task_update", args=[task.pk]),
+        {"project": project.pk, "owner": other.pk, "title": task.title},
+    )
+    assert response.status_code == 302
+    task.refresh_from_db()
+    assert task.owner == other
+
+
 # --- accounts (unchanged behaviour) -----------------------------------------
 
 def tests_signup_view_creates_user(client):

@@ -159,4 +159,14 @@ def create_organizations_StatusDefinition(**kwargs):
     defaults.setdefault("project_type", create_organizations_ProjectType())
     return organizations_models.StatusDefinition.objects.create(**defaults)
 
+
+def create_tasks_Comment(**kwargs):
+    defaults = {
+        "body": "a comment",
+    }
+    defaults.update(**kwargs)
+    defaults.setdefault("task", create_tasks_Task())
+    defaults.setdefault("author", create_User())
+    return tasks_models.Comment.objects.create(**defaults)
+
   
