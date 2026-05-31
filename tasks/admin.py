@@ -57,8 +57,15 @@ class NotificationPreferenceAdmin(admin.ModelAdmin):
     search_fields = ["user__username"]
 
 
+class SavedViewAdmin(admin.ModelAdmin):
+    list_display = ["name", "project", "created_by", "created"]
+    search_fields = ["name", "project__name"]
+    readonly_fields = ["created"]
+
+
 admin.site.register(models.Task, TaskAdmin)
 admin.site.register(models.Comment, CommentAdmin)
 admin.site.register(models.Activity, ActivityAdmin)
 admin.site.register(models.NotificationPreference, NotificationPreferenceAdmin)
+admin.site.register(models.SavedView, SavedViewAdmin)
 

@@ -24,7 +24,10 @@ editable **assignee**. A **CSV/XLSX importer** maps spreadsheet columns to a
 project's fields, previews validation, and commits valid rows. The REST API is
 hardened with **token auth, filtering/ordering/pagination, and OpenAPI docs**.
 Assignees get **email notifications** (assignment / comment / status-change),
-gated by per-user preferences. Phase 9 (dashboards & saved views) is next.
+gated by per-user preferences. The task list supports **filtering + shared,
+per-project saved views**, and an org **dashboard** shows counts/overdue/recent
+activity. Phase 10 (production readiness: Postgres, Docker, CI) is the last
+roadmap phase.
 
 The codebase is intentionally small. Prefer keeping it that way: add behaviour
 where it belongs rather than introducing new layers or abstractions. Tenancy
@@ -69,11 +72,11 @@ TaskBoard/
 │   ├── templates/organizations/  # project_list / project_detail / project_form
 │   └── migrations/           # ...0004 ProjectType, 0005 seed types, 0006 StatusDefinition, 0007 seed workflows
 ├── tasks/                    # the work-item app (membership-scoped)
-│   ├── models.py             # Task, Comment, Activity, NotificationPreference
+│   ├── models.py             # Task, Comment, Activity, NotificationPreference, SavedView
 │   ├── activity.py           # log_created / log_changes / snapshot (activity log)
 │   ├── notifications.py      # assignee email notifications (per-preference)
 │   ├── importer.py           # pure CSV/XLSX parse → map → validate → commit
-│   ├── views.py              # CBVs: OrgScopedTaskMixin, TaskWriteRoleMixin, AddCommentView, import views, NotificationPreferencesView
+│   ├── views.py              # CBVs: task/comment/import/notification + DashboardView, SavedView views
 │   ├── api.py                # DRF Task + Project viewsets (org-scoped)
 │   ├── serializers.py        # DRF serializers
 │   ├── forms.py              # TaskForm (project/assignee/custom/status-aware), CommentForm
@@ -228,6 +231,25 @@ Users edit toggles at `notification_preferences` (`NotificationPreferencesView`,
 linked from the profile). Dev uses the console backend; tests assert via
 `mailoutbox`.
 
+### Dashboard & saved views
+- **Task-list filters**: `TaskListView` honors `?project=`, `?status=`,
+  `?is_done=true|false`, and `?q=` (title/notes search), all on top of the
+  active-org scope. `task_filters_from_request` builds the **canonical filter
+  dict** (status/is_done/q; reads POST on a POST, else GET) and
+  `apply_task_filters` applies it — both reused by saved views so the filter
+  shape never diverges.
+- **Saved views** (`SavedView`): a named filter **shared per project** (visible
+  to everyone in the project's org; records `created_by`). Created from the task
+  list ("Save this view" → `SavedViewCreateView`, `update_or_create` so re-saving
+  a name updates it) and removed via `SavedViewDeleteView`; both are member+ and
+  org-scoped (foreign project 404s). `SavedView.querystring()` rebuilds the
+  task-list link (`project` + filters). Routes `tasks:savedview_create` /
+  `savedview_delete`.
+- **Dashboard** (`DashboardView`, `tasks:dashboard`, in the nav): pure
+  aggregation over the active org's tasks — total, open/done, overdue
+  (`due_date < localdate()` & not done), counts by status, and the latest ~10
+  `Activity` rows. No writes.
+
 ### Web layer
 Plain Django generic class-based views (`ListView`, `CreateView`, `DetailView`,
 `UpdateView`, `DeleteView`) in `tasks/views.py`. Create/Update use
@@ -309,7 +331,8 @@ guard in `get_queryset` so schema generation never touches `request.user`.
 ### URL names
 App namespace is `tasks`. Web routes: `tasks:Task_list`, `tasks:Task_create`,
 `tasks:Task_detail`, `tasks:Task_update`, `tasks:Task_delete`,
-`tasks:Task_comment`, `tasks:import`, `tasks:import_map`. API routes
+`tasks:Task_comment`, `tasks:import`, `tasks:import_map`, `tasks:dashboard`,
+`tasks:savedview_create`, `tasks:savedview_delete`. API routes
 (router): `tasks:task-list`/`tasks:task-detail`,
 `tasks:project-list`/`tasks:project-detail`. Project-level API routes:
 `api_token`, `schema`, `swagger-ui`, `redoc`. Project web routes live in the
@@ -344,7 +367,8 @@ configure static file serving, and run `manage.py check --deploy`.
   `tests/organizations/test_workflow.py`; activity recording in
   `tests/tasks/test_activity.py`; the importer in `tests/tasks/test_import.py`;
   API auth/filtering/pagination/docs in `tests/tasks/test_api_hardening.py`;
-  notifications in `tests/tasks/test_notifications.py`.
+  notifications in `tests/tasks/test_notifications.py`; dashboard aggregation in
+  `tests/tasks/test_dashboard.py`; saved views in `tests/tasks/test_saved_views.py`.
   Note API list responses are paginated — read `response.data["results"]`. Use
   `APIClient().credentials(HTTP_AUTHORIZATION="Token <t>")` to test token auth. Tests live under
   `tests/<app>/` (e.g. `tests/tasks/`, `tests/organizations/`). Note

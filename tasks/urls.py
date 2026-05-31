@@ -21,4 +21,15 @@ urlpatterns = (
     path("Task/<int:pk>/comment/", views.AddCommentView.as_view(), name="Task_comment"),
     path("import/", views.TaskImportView.as_view(), name="import"),
     path("import/map/", views.TaskImportMapView.as_view(), name="import_map"),
+    path("dashboard/", views.DashboardView.as_view(), name="dashboard"),
+    path(
+        "views/save/",
+        views.SavedViewCreateView.as_view(),
+        name="savedview_create",
+    ),
+    path(
+        "views/<int:pk>/delete/",
+        views.SavedViewDeleteView.as_view(),
+        name="savedview_delete",
+    ),
 )

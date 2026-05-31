@@ -1,3 +1,5 @@
+from urllib.parse import urlencode
+
 from django.db import models
 from django.urls import reverse
 
@@ -158,6 +160,40 @@ class NotificationPreference(models.Model):
 
     def __str__(self):
         return f"Notification preferences for {self.user}"
+
+
+class SavedView(models.Model):
+    """A named, reusable task-list filter for a project, shared with everyone in
+    the project's organization."""
+
+    project = models.ForeignKey(
+        "organizations.Project", on_delete=models.CASCADE, related_name="saved_views"
+    )
+    name = models.CharField(max_length=120)
+    created_by = models.ForeignKey(
+        "auth.User", null=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    # Canonical task-list filters, e.g. {"status": "done", "is_done": "true"}.
+    filters = models.JSONField(default=dict, blank=True)
+    created = models.DateTimeField(auto_now_add=True, editable=False)
+
+    class Meta:
+        ordering = ["name"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["project", "name"],
+                name="unique_saved_view_name_per_project",
+            )
+        ]
+
+    def __str__(self):
+        return self.name
+
+    def querystring(self):
+        """Task-list query string that reproduces this view (project + filters)."""
+        params = {"project": self.project_id}
+        params.update({k: v for k, v in self.filters.items() if v not in (None, "")})
+        return urlencode(params)
 
 
 
