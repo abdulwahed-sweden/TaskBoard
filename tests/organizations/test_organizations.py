@@ -2,7 +2,15 @@ import pytest
 import test_helpers
 from django.urls import reverse
 
-from organizations.models import Membership, Organization, Project, role_rank
+from organizations.custom_fields import validate_custom_fields
+from organizations.models import (
+    FieldDefinition,
+    Membership,
+    Organization,
+    Project,
+    ProjectType,
+    role_rank,
+)
 from organizations.permissions import RequireRoleMixin, has_role
 from organizations.services import create_personal_organization
 from organizations.sessions import (
@@ -266,6 +274,48 @@ def tests_project_create_attaches_to_active_org(client):
     assert response.status_code == 302
     project = Project.objects.get(name="Roadmap")
     assert project.organization == org
+
+
+# --- project types (seeded) -------------------------------------------------
+
+def tests_seeded_project_types_exist():
+    software = ProjectType.objects.get(name="Software Tasks")
+    fields = {f.name: f for f in software.field_definitions.all()}
+    assert fields["priority"].field_type == FieldDefinition.FieldType.CHOICE
+    assert fields["priority"].required
+    assert fields["priority"].choices == ["Low", "Medium", "High"]
+    assert "component" in fields
+
+    translation = ProjectType.objects.get(name="Translation Jobs")
+    names = {f.name for f in translation.field_definitions.all()}
+    assert {"source_lang", "target_lang", "word_count", "deadline"} <= names
+
+
+def tests_switching_project_type_preserves_data_and_revalidates():
+    type_a = test_helpers.create_organizations_ProjectType(name="A")
+    test_helpers.create_organizations_FieldDefinition(
+        project_type=type_a, name="fa",
+        field_type=FieldDefinition.FieldType.TEXT, required=True,
+    )
+    type_b = test_helpers.create_organizations_ProjectType(name="B")
+    test_helpers.create_organizations_FieldDefinition(
+        project_type=type_b, name="fb",
+        field_type=FieldDefinition.FieldType.TEXT, required=True,
+    )
+    project = test_helpers.create_organizations_Project(project_type=type_a)
+    task = test_helpers.create_tasks_Task(
+        project=project, custom_fields={"fa": "kept"}
+    )
+
+    project.project_type = type_b
+    project.save()
+    task.refresh_from_db()
+    # Existing task data is preserved, not rewritten.
+    assert task.custom_fields == {"fa": "kept"}
+    # New validation uses the new type's schema.
+    assert validate_custom_fields(project.project_type, {"fb": "y"}) == {"fb": "y"}
+    with pytest.raises(Exception):
+        validate_custom_fields(project.project_type, {"fa": "x"})
 
 
 # --- context processor ------------------------------------------------------

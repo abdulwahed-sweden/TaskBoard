@@ -12,6 +12,9 @@
   <tr><td>Due date</td><td>{{ object.due_date|default:"—" }}</td></tr>
   <tr><td>Created</td><td>{{ object.created }}</td></tr>
   <tr><td>Last updated</td><td>{{ object.last_updated }}</td></tr>
+  {% for key, value in object.custom_fields.items %}
+    <tr><td>{{ key }}</td><td>{{ value }}</td></tr>
+  {% endfor %}
 </table>
 
 <div class="btn-row">

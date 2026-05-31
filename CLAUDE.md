@@ -11,11 +11,13 @@ API (Django REST Framework). It was originally scaffolded with Django Builder
 and has since been upgraded to Django 6 and cleaned up.
 
 It is being evolved into a multi-tenant work platform (see `ROADMAP.md`).
-**Phases 1–2 have landed:** users belong to organizations (with a per-session
+**Phases 1–3 have landed:** users belong to organizations (with a per-session
 "active org"), organizations contain projects, and every task lives in a
 project. Task access is **membership-scoped** — you see/act on tasks in projects
-inside orgs you belong to, gated by role (viewers are read-only). Phase 3
-(project types + custom fields) is next.
+inside orgs you belong to, gated by role (viewers are read-only). A project may
+have a **`ProjectType`** that declares a custom-field schema; each task carries
+validated domain data in a `custom_fields` JSONField. Phase 4 (configurable
+status workflows) is next.
 
 The codebase is intentionally small. Prefer keeping it that way: add behaviour
 where it belongs rather than introducing new layers or abstractions. Tenancy
@@ -45,17 +47,18 @@ TaskBoard/
 │   ├── urls.py               # root urlconf
 │   ├── wsgi.py / asgi.py
 │   └── consumers.py / routing.py   # Channels stubs (unused, see "Known quirks")
-├── organizations/            # multi-tenancy: orgs, memberships, projects
-│   ├── models.py             # Organization, Membership (+ Role, role_rank), Project
+├── organizations/            # multi-tenancy + project types
+│   ├── models.py             # Organization, Membership, Project, ProjectType, FieldDefinition
 │   ├── services.py           # create_personal_organization (shared w/ migration)
 │   ├── permissions.py        # has_role, RequireRoleMixin
+│   ├── custom_fields.py      # validate_custom_fields (form + API + import reuse it)
 │   ├── sessions.py           # active-org session helpers
 │   ├── context_processors.py # exposes active_organization / user_organizations
 │   ├── views.py              # SwitchOrganizationView, ActiveOrganizationMixin, Project views
 │   ├── urls.py               # /organizations/switch/, /organizations/projects/...
-│   ├── admin.py              # Organization + Membership + Project admin
+│   ├── admin.py              # Organization/Membership/Project/ProjectType admin
 │   ├── templates/organizations/  # project_list / project_detail / project_form
-│   └── migrations/           # 0001 models, 0002 personal orgs, 0003 Project
+│   └── migrations/           # ...0003 Project, 0004 ProjectType, 0005 seed types
 ├── tasks/                    # the work-item app (membership-scoped)
 │   ├── models.py             # Task model (FK to organizations.Project)
 │   ├── views.py              # CBVs: OrgScopedTaskMixin, TaskWriteRoleMixin, ...
@@ -132,13 +135,29 @@ The `organizations` app holds the tenancy layer.
   `ProjectDetailView` (org-scoped; lists the project's tasks),
   `ProjectCreateView` (members+; routes `organizations:Project_list` /
   `_detail` / `_create`). Project edit/delete is admin-only for now.
+- **Project types & custom fields** (`ProjectType`, `FieldDefinition`): a
+  project may set `project_type` (nullable FK, `PROTECT`). A type owns ordered
+  `FieldDefinition`s (`name`, `label`, `field_type` ∈ text/number/date/choice/
+  boolean, `required`, `choices`) — the schema for `Task.custom_fields`.
+  **`organizations/custom_fields.validate_custom_fields(project_type, raw)` is
+  the single source of truth**: rejects unknown keys, enforces required, checks
+  & normalizes types (dates → ISO strings), and an untyped project permits only
+  empty custom fields. It is reused by `TaskForm`, the serializer, and (later)
+  the importer. Two types are seeded by migration (Software Tasks, Translation
+  Jobs); add/edit types via the admin (`ProjectType` with a `FieldDefinition`
+  inline). Switching a project's type does **not** rewrite existing tasks'
+  stored data — values are preserved and only re-validated on the next edit.
 
 ### The `Task` model
 `tasks/models.py` defines a single `Task` with: `project` (FK to
 `organizations.Project`, **required** — every task lives in a project), `owner`
 (FK to `auth.User`, nullable — the creator), `title`, `notes`, `is_done`,
-`due_date`, plus auto-managed `created`/`last_updated` timestamps. Default
-ordering is newest-first (`-created`). The model exposes `get_absolute_url`,
+`due_date`, `custom_fields` (JSONField, validated against the project type),
+plus auto-managed `created`/`last_updated` timestamps. Default ordering is
+newest-first (`-created`). `Task.clean()` validates `custom_fields` (attaching
+errors to the `custom_fields` field, for the admin/raw path) unless
+`_skip_custom_field_validation` is set — `TaskForm` sets that because it
+validates onto its own per-field widgets. The model exposes `get_absolute_url`,
 `get_update_url`, `get_delete_url` and a static `get_create_url`, which the
 templates rely on — keep these in sync with `tasks/urls.py` if you rename routes.
 
@@ -146,7 +165,11 @@ templates rely on — keep these in sync with `tasks/urls.py` if you rename rout
 Plain Django generic class-based views (`ListView`, `CreateView`, `DetailView`,
 `UpdateView`, `DeleteView`) in `tasks/views.py`. Create/Update use
 `forms.TaskForm` (which takes a `projects` queryset limiting the selectable
-project). Templates live in `tasks/templates/tasks/` and extend
+project, and **dynamically adds one `custom_<name>` field per the project type's
+`FieldDefinition`s**, rendering automatically via `{{ form.as_div }}`). The
+target project is the submitted one when bound, else the instance/initial — so
+without JS, changing the project dropdown re-renders the right custom fields on
+submit. Templates live in `tasks/templates/tasks/` and extend
 `templates/base.html`.
 
 **Task views require login and are membership-scoped** (this replaced the old
@@ -192,7 +215,9 @@ authentication**, so unauthenticated requests return `403`. Both viewsets are
 makes writes require `member` in the object's org (reads need `viewer`), and the
 serializers reject filing a task/project into an org the user can't write to.
 `owner` is set from the request on create and is read-only, as are
-`created`/`last_updated`.
+`created`/`last_updated`. `TaskSerializer` exposes `custom_fields` and validates
+it (via the shared `validate_custom_fields`) whenever the `project` or
+`custom_fields` changes.
 
 ### URL names
 App namespace is `tasks`. Web routes: `tasks:Task_list`, `tasks:Task_create`,
@@ -222,8 +247,11 @@ configure static file serving, and run `manage.py check --deploy`.
   re-exports `TaskBoard.settings`). Override test-only settings there.
 - `test_helpers.py` holds small factory functions (e.g. `create_tasks_Task`,
   `create_User`, `create_organizations_Organization`,
-  `create_organizations_Membership`, `create_organizations_Project`). Reuse
-  them in new tests instead of building objects inline. Tests live under
+  `create_organizations_Membership`, `create_organizations_Project`,
+  `create_organizations_ProjectType`, `create_organizations_FieldDefinition`).
+  Reuse them in new tests instead of building objects inline. The shared
+  custom-field validator has focused tests in
+  `tests/organizations/test_custom_fields.py`. Tests live under
   `tests/<app>/` (e.g. `tests/tasks/`, `tests/organizations/`). Note
   `create_tasks_Task` auto-creates a project (and, for a real owner, an org
   membership) when none is passed, so the task is visible under org-scoping;

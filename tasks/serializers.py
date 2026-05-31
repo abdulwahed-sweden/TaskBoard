@@ -1,6 +1,8 @@
 
+from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 
+from organizations.custom_fields import validate_custom_fields
 from organizations.models import Membership, Project
 from organizations.permissions import has_role
 
@@ -21,6 +23,7 @@ class TaskSerializer(serializers.ModelSerializer):
             "due_date",
             "owner",
             "project",
+            "custom_fields",
         ]
         read_only_fields = ["created", "last_updated", "owner"]
 
@@ -33,6 +36,28 @@ class TaskSerializer(serializers.ModelSerializer):
                 "You do not have permission to use this project."
             )
         return project
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        # Only (re)validate custom fields when the project or the fields change.
+        if "project" not in attrs and "custom_fields" not in attrs:
+            return attrs
+        project = attrs.get("project") or getattr(self.instance, "project", None)
+        project_type = (
+            project.project_type
+            if project and project.project_type_id
+            else None
+        )
+        raw = (
+            attrs["custom_fields"]
+            if "custom_fields" in attrs
+            else getattr(self.instance, "custom_fields", {})
+        )
+        try:
+            attrs["custom_fields"] = validate_custom_fields(project_type, raw or {})
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError({"custom_fields": exc.message_dict})
+        return attrs
 
 
 class ProjectSerializer(serializers.ModelSerializer):

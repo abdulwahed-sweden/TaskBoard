@@ -23,11 +23,68 @@ class Organization(models.Model):
         return self.name
 
 
+class ProjectType(models.Model):
+    """A reusable work template: declares the custom-field schema (and, later,
+    workflow) that projects of this type share."""
+
+    name = models.CharField(max_length=120, unique=True)
+    description = models.TextField(blank=True, default="")
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+
+class FieldDefinition(models.Model):
+    """One custom field declared by a :class:`ProjectType`. The set of
+    definitions for a type is the schema that ``Task.custom_fields`` is
+    validated against."""
+
+    class FieldType(models.TextChoices):
+        TEXT = "text", "Text"
+        NUMBER = "number", "Number"
+        DATE = "date", "Date"
+        CHOICE = "choice", "Choice"
+        BOOLEAN = "boolean", "Boolean"
+
+    project_type = models.ForeignKey(
+        ProjectType, on_delete=models.CASCADE, related_name="field_definitions"
+    )
+    name = models.SlugField(max_length=60)  # the key used in custom_fields
+    label = models.CharField(max_length=120)
+    field_type = models.CharField(max_length=20, choices=FieldType.choices)
+    required = models.BooleanField(default=False)
+    # Only meaningful when field_type == CHOICE: the allowed values.
+    choices = models.JSONField(default=list, blank=True)
+    order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["order", "id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["project_type", "name"],
+                name="unique_field_name_per_project_type",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.project_type}.{self.name}"
+
+
 class Project(models.Model):
     """A container for work (tasks) inside an organization."""
 
     organization = models.ForeignKey(
         Organization, on_delete=models.CASCADE, related_name="projects"
+    )
+    project_type = models.ForeignKey(
+        ProjectType,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="projects",
     )
     name = models.CharField(max_length=120)
     description = models.TextField(blank=True, default="")
