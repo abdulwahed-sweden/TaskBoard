@@ -1,0 +1,18 @@
+
+{% extends "base.html" %}
+{% block content %}
+
+<div class='container'>
+  <div class='card'>
+    <div class='card-body'>
+      <div class="m-2">
+        <h4>tasks</h4>
+      </div>
+      <div class="m-2">
+      <a class="btn btn-light" href="{% url 'tasks:Task_list' %}">Task Listing</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

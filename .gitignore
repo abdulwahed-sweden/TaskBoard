@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Virtual environment
+.venv/
+
+# Test / tooling caches
+.pytest_cache/
+
+# Django
+*.sqlite3
+*.log
+staticfiles/
+media/
+
+# Local env
+.env

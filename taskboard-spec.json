@@ -1,0 +1,27 @@
+{
+  "name": "TaskBoard",
+  "description": "A simple task board built with Django Builder",
+  "htmx": false,
+  "postgres": false,
+  "apps": [
+    {
+      "name": "tasks",
+      "models": [
+        {
+          "name": "Task",
+          "fields": [
+            { "name": "created",      "type": "DateTimeField", "args": "auto_now_add=True, editable=False" },
+            { "name": "last_updated", "type": "DateTimeField", "args": "auto_now=True, editable=False" },
+            { "name": "title",        "type": "CharField",     "args": "max_length=120" },
+            { "name": "notes",         "type": "TextField",     "args": "blank=True, default=''" },
+            { "name": "is_done",       "type": "BooleanField",  "args": "default=False" },
+            { "name": "due_date",      "type": "DateField",     "args": "null=True, blank=True" }
+          ],
+          "relationships": [
+            { "name": "owner", "type": "ForeignKey", "to": "auth.User", "args": "null=True, on_delete=models.CASCADE" }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+
+{% extends "base.html" %}
+{% block content %}
+{% for object in object_list %}
+  <div class="m-2">
+    <a href="{{ object.get_absolute_url }}">{{ object }}</a>
+    <small class="ml-5">
+      <a href="{{ object.get_delete_url }}">(Delete)</a>
+    </small>
+  </div>
+{% endfor %}
+<div>
+  <a class="btn btn-primary" href="{% url 'tasks:Task_create' %}">
+  Create a new Task
+  </a>
+</div>
+{% endblock %}

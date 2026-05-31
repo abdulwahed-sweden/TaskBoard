@@ -1,0 +1,54 @@
+
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+    
+<p>
+    <a class="btn btn-light" href="{% url 'tasks:Task_list' %}">
+     Listing
+    </a>
+</p>
+    
+<table class="table">
+    <tr><td>Detail</td><td>{{ object }}</td></tr>
+    <tr>
+        <td>created</td>
+        <td>
+            {{ object.created }}
+        </td>
+    </tr>
+    <tr>
+        <td>last_updated</td>
+        <td>
+            {{ object.last_updated }}
+        </td>
+    </tr>
+    <tr>
+        <td>title</td>
+        <td>
+            {{ object.title }}
+        </td>
+    </tr>
+    <tr>
+        <td>notes</td>
+        <td>
+            {{ object.notes }}
+        </td>
+    </tr>
+    <tr>
+        <td>is_done</td>
+        <td>
+            {{ object.is_done }}
+        </td>
+    </tr>
+    <tr>
+        <td>due_date</td>
+        <td>
+            {{ object.due_date }}
+        </td>
+    </tr>
+
+</table>
+<a class="btn btn-primary" href="{{object.get_update_url}}">Edit</a>
+
+{% endblock %}
