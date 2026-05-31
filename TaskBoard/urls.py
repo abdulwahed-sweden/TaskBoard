@@ -19,6 +19,12 @@ from django.contrib import admin
 from django.contrib.auth import views as auth_views
 from django.urls import path, include
 from django.views.generic import TemplateView
+from drf_spectacular.views import (
+    SpectacularAPIView,
+    SpectacularRedocView,
+    SpectacularSwaggerView,
+)
+from rest_framework.authtoken.views import obtain_auth_token
 
 from . import views
 
@@ -38,5 +44,18 @@ urlpatterns = [
     path('accounts/', include('django.contrib.auth.urls')),
     path('organizations/', include('organizations.urls')),
     path('tasks/', include('tasks.urls')),
+    # API auth + documentation
+    path('api/token/', obtain_auth_token, name='api_token'),
+    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
+    path(
+        'api/docs/',
+        SpectacularSwaggerView.as_view(url_name='schema'),
+        name='swagger-ui',
+    ),
+    path(
+        'api/redoc/',
+        SpectacularRedocView.as_view(url_name='schema'),
+        name='redoc',
+    ),
     path('admin/', admin.site.urls),
 ]
