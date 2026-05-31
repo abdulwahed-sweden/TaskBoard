@@ -126,3 +126,29 @@ STATIC_URL = '/static/'
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+# Authentication
+# https://docs.djangoproject.com/en/6.0/topics/auth/default/
+
+LOGIN_URL = 'login'
+LOGIN_REDIRECT_URL = 'tasks:Task_list'
+LOGOUT_REDIRECT_URL = 'index'
+
+
+# Email
+# Used by the password-reset flow. In development the console backend prints
+# messages to stdout; set DJANGO_EMAIL_BACKEND (and SMTP vars) in production.
+
+EMAIL_BACKEND = os.environ.get(
+    'DJANGO_EMAIL_BACKEND',
+    'django.core.mail.backends.console.EmailBackend',
+)
+EMAIL_HOST = os.environ.get('DJANGO_EMAIL_HOST', 'localhost')
+EMAIL_PORT = int(os.environ.get('DJANGO_EMAIL_PORT', '25'))
+EMAIL_HOST_USER = os.environ.get('DJANGO_EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.environ.get('DJANGO_EMAIL_HOST_PASSWORD', '')
+EMAIL_USE_TLS = os.environ.get('DJANGO_EMAIL_USE_TLS', 'False') == 'True'
+DEFAULT_FROM_EMAIL = os.environ.get(
+    'DJANGO_DEFAULT_FROM_EMAIL', 'taskboard@example.com'
+)

@@ -95,6 +95,33 @@ Plain Django generic class-based views (`ListView`, `CreateView`, `DetailView`,
 `forms.TaskForm`. Templates live in `tasks/templates/tasks/` and extend
 `templates/base.html`.
 
+**Task views require login and are owner-scoped.** All task views use
+`LoginRequiredMixin`; the read/update/delete views go through `OwnedTasksMixin`,
+which filters the queryset to `owner=request.user` (so another user's task 404s
+rather than leaking). `TaskCreateView.form_valid` sets `owner` to the logged-in
+user, so `owner` is intentionally **not** a `TaskForm` field.
+
+### Accounts & profile
+Authentication uses Django's built-in views, wired in `TaskBoard/urls.py`:
+`django.contrib.auth.urls` provides `login`/`logout`, `password_change`
+(+ `_done`) and the password-reset flow, and project-level views in
+`TaskBoard/views.py` add `signup` (`UserCreationForm`) and `profile` (an
+`UpdateView` on the current `User` that also lists their tasks). Auth
+templates live in `templates/registration/`. `settings.py` sets `LOGIN_URL`,
+`LOGIN_REDIRECT_URL` (→ task list) and `LOGOUT_REDIRECT_URL` (→ index).
+Logout is POST-only (Django 5+), so the nav uses a small form.
+
+### Password reset & email
+"Forgot password?" (linked from the login page) uses Django's
+`PasswordReset*` views. The page templates plus the message body
+(`password_reset_email.html`) and subject (`password_reset_subject.txt`)
+live in `templates/registration/`. Email is configured in `settings.py`
+from the environment with dev fallbacks: `EMAIL_BACKEND` defaults to the
+**console backend** (reset messages print to the runserver stdout — no real
+mail is sent in dev). For production set `DJANGO_EMAIL_BACKEND` and the
+`DJANGO_EMAIL_*`/`DJANGO_DEFAULT_FROM_EMAIL` SMTP variables. In tests, assert
+delivery via pytest-django's `mailoutbox` fixture.
+
 ### API layer
 DRF `ModelViewSet` (`tasks/api.py`) registered on a `DefaultRouter` under
 `/tasks/api/v1/`. **The API requires authentication** (`IsAuthenticated`), so

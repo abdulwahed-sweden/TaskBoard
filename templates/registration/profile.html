@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h4>Profile: {{ user.username }}</h4>
+
+<form method="post">
+  {% csrf_token %}
+  {{ form.errors }}
+  {{ form.as_div }}
+  <input type="submit" value="Save" class="btn btn-primary">
+</form>
+
+<p class="mt-3">
+  <a href="{% url 'password_change' %}">Change password</a>
+</p>
+
+<h5 class="mt-4">My tasks</h5>
+{% for task in tasks %}
+  <div class="m-2">
+    <a href="{{ task.get_absolute_url }}">{{ task }}</a>
+  </div>
+{% empty %}
+  <p>No tasks yet. <a href="{% url 'tasks:Task_create' %}">Create one</a>.</p>
+{% endfor %}
+
+{% endblock %}

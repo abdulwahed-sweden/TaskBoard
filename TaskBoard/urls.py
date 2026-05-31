@@ -23,6 +23,9 @@ from . import views
 
 urlpatterns = [
     path('', TemplateView.as_view(template_name='index.html'), name='index'),
+    path('accounts/signup/', views.SignUpView.as_view(), name='signup'),
+    path('accounts/profile/', views.ProfileView.as_view(), name='profile'),
+    path('accounts/', include('django.contrib.auth.urls')),
     path('tasks/', include('tasks.urls')),
     path('admin/', admin.site.urls),
 ]
