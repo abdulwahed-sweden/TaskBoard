@@ -4,6 +4,7 @@ from django.contrib.auth.models import User
 from django.urls import reverse_lazy
 from django.views import generic
 
+from organizations.services import create_personal_organization
 from tasks.models import Task
 
 
@@ -13,6 +14,12 @@ class SignUpView(generic.CreateView):
     form_class = UserCreationForm
     template_name = "registration/signup.html"
     success_url = reverse_lazy("login")
+
+    def form_valid(self, form):
+        """Create the user, then give them a personal organization to own."""
+        response = super().form_valid(form)
+        create_personal_organization(self.object)
+        return response
 
 
 class ProfileView(LoginRequiredMixin, generic.UpdateView):

@@ -10,8 +10,15 @@ both server-rendered pages (Django class-based views + templates) and a REST
 API (Django REST Framework). It was originally scaffolded with Django Builder
 and has since been upgraded to Django 6 and cleaned up.
 
+It is being evolved into a multi-tenant work platform (see `ROADMAP.md`).
+**Phase 1 (organizations & membership) has landed:** users belong to
+organizations, with a per-session "active org." Tasks are still owner-scoped for
+now — moving them under organizations/projects is Phase 2.
+
 The codebase is intentionally small. Prefer keeping it that way: add behaviour
-where it belongs rather than introducing new layers or abstractions.
+where it belongs rather than introducing new layers or abstractions. Tenancy
+concerns live in the dedicated `organizations` app; the `tasks` app stays
+focused on the work item itself.
 
 ## Tech stack
 
@@ -36,7 +43,17 @@ TaskBoard/
 │   ├── urls.py               # root urlconf
 │   ├── wsgi.py / asgi.py
 │   └── consumers.py / routing.py   # Channels stubs (unused, see "Known quirks")
-├── tasks/                    # the single app
+├── organizations/            # multi-tenancy: orgs, memberships, active-org
+│   ├── models.py             # Organization, Membership (+ Role, role_rank)
+│   ├── services.py           # create_personal_organization (shared w/ migration)
+│   ├── permissions.py        # has_role, RequireRoleMixin
+│   ├── sessions.py           # active-org session helpers
+│   ├── context_processors.py # exposes active_organization / user_organizations
+│   ├── views.py              # SwitchOrganizationView
+│   ├── urls.py               # /organizations/switch/
+│   ├── admin.py              # Organization + Membership admin
+│   └── migrations/           # 0001 models, 0002 personal orgs for existing users
+├── tasks/                    # the work-item app
 │   ├── models.py             # Task model
 │   ├── views.py              # class-based views
 │   ├── api.py                # DRF viewset
@@ -47,7 +64,7 @@ TaskBoard/
 │   ├── migrations/
 │   └── templates/tasks/      # task_list / task_detail / task_form / task_confirm_delete
 ├── templates/                # project-level templates (base.html, index.html, htmx/)
-└── tests/tasks/test_views.py
+└── tests/                    # tests/tasks/ and tests/organizations/
 ```
 
 ## Common commands
@@ -80,6 +97,31 @@ python manage.py check --deploy     # run before shipping to production
 ```
 
 ## Architecture & conventions
+
+### Organizations & membership (multi-tenancy)
+The `organizations` app holds the tenancy layer.
+
+- **Models** (`organizations/models.py`): `Organization` (name + unique `slug`)
+  and `Membership` (user ⇄ org with a `role`). Roles are a `TextChoices` enum —
+  `owner` > `admin` > `member` > `viewer` — and `ROLE_RANK` / `role_rank()`
+  encode that precedence. `(user, organization)` is unique.
+- **Personal org on signup**: `SignUpView.form_valid` (in `TaskBoard/views.py`)
+  calls `organizations.services.create_personal_organization(user)`, which makes
+  an org and an `owner` membership. The same logic is mirrored in data migration
+  `0002_create_personal_orgs` for users that predate the feature (migrations use
+  historical models and cannot import the service).
+- **Active organization**: stored in the session as `active_organization_id`.
+  Always read it through `organizations.sessions.get_active_organization(request)`,
+  which validates membership and falls back to the user's first org (so a stale
+  or tampered id can never leak another tenant). `context_processors.organizations`
+  exposes `active_organization` and `user_organizations` to every template, and
+  `base.html` renders an org switcher that POSTs to `SwitchOrganizationView`
+  (`organizations:switch`, POST-only, member-checked).
+- **Permission helpers** (`organizations/permissions.py`): `has_role(user, org,
+  min_role)` predicate and `RequireRoleMixin` (set `required_role`, implement
+  `get_organization()`) for gating views by role. Use these instead of querying
+  `Membership` ad hoc. Task views are **not** org-scoped yet — that arrives in
+  Phase 2; today they remain owner-scoped (see Web layer below).
 
 ### The `Task` model
 `tasks/models.py` defines a single `Task` with: `owner` (FK to `auth.User`,
@@ -152,7 +194,10 @@ configure static file serving, and run `manage.py check --deploy`.
 - pytest is configured via `pytest.ini` and uses `test_settings` (which simply
   re-exports `TaskBoard.settings`). Override test-only settings there.
 - `test_helpers.py` holds small factory functions (e.g. `create_tasks_Task`,
-  `create_User`). Reuse them in new tests instead of building objects inline.
+  `create_User`, `create_organizations_Organization`,
+  `create_organizations_Membership`). Reuse them in new tests instead of
+  building objects inline. Tests live under `tests/<app>/` (e.g.
+  `tests/tasks/`, `tests/organizations/`).
 - Tests that touch the database must be marked — the existing module sets
   `pytestmark = [pytest.mark.django_db]` at the top; follow that pattern.
 - Keep views side-effect free beyond their HTTP responsibilities so they stay
