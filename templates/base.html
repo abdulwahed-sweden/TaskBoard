@@ -56,6 +56,12 @@
       .nav-links { display: flex; align-items: center; gap: 16px; }
       .nav-links form { margin: 0; }
       .nav-user { color: var(--muted); font-weight: 600; }
+      .org-switcher select {
+        width: auto;
+        padding: 6px 10px;
+        font-size: 13px;
+        border-radius: 8px;
+      }
 
       /* Layout */
       main { max-width: 760px; margin: 28px auto; padding: 0 20px; }
@@ -157,6 +163,21 @@
         <a class="brand" href="{% url 'index' %}">TaskBoard</a>
         <nav class="nav-links">
           {% if user.is_authenticated %}
+            {% if user_organizations %}
+              <form class="org-switcher" method="post" action="{% url 'organizations:switch' %}">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                <select name="organization" aria-label="Active organization"
+                        onchange="this.form.submit()">
+                  {% for org in user_organizations %}
+                    <option value="{{ org.pk }}"
+                      {% if active_organization and org.pk == active_organization.pk %}selected{% endif %}>
+                      {{ org.name }}
+                    </option>
+                  {% endfor %}
+                </select>
+              </form>
+            {% endif %}
             <a href="{% url 'tasks:Task_list' %}">Tasks</a>
             <a class="nav-user" href="{% url 'profile' %}">{{ user.username }}</a>
             <form method="post" action="{% url 'logout' %}">

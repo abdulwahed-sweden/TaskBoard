@@ -12,6 +12,7 @@ from django.contrib.contenttypes.models import ContentType
 from datetime import datetime
 
 from tasks import models as tasks_models
+from organizations import models as organizations_models
 
 
 def random_string(length=10):
@@ -75,5 +76,25 @@ def create_tasks_Task(**kwargs):
     defaults.update(**kwargs)
     result = tasks_models.Task.objects.create(**defaults)
     return result
+
+
+def create_organizations_Organization(**kwargs):
+    name = kwargs.pop("name", "%s Org" % random_string(5))
+    defaults = {
+        "name": name,
+        "slug": "%s-org" % random_string(8),
+    }
+    defaults.update(**kwargs)
+    return organizations_models.Organization.objects.create(**defaults)
+
+
+def create_organizations_Membership(**kwargs):
+    defaults = {
+        "role": organizations_models.Membership.Role.MEMBER,
+    }
+    defaults.update(**kwargs)
+    defaults.setdefault("user", create_User())
+    defaults.setdefault("organization", create_organizations_Organization())
+    return organizations_models.Membership.objects.create(**defaults)
 
   
