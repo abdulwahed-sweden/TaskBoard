@@ -138,3 +138,13 @@ class CommentForm(forms.ModelForm):
         fields = ["body"]
         widgets = {"body": forms.Textarea(attrs={"rows": 3})}
 
+
+class NotificationPreferenceForm(forms.ModelForm):
+    class Meta:
+        model = models.NotificationPreference
+        fields = [
+            "notify_on_assignment",
+            "notify_on_comment",
+            "notify_on_status_change",
+        ]
+

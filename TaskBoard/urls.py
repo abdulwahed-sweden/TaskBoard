@@ -26,12 +26,19 @@ from drf_spectacular.views import (
 )
 from rest_framework.authtoken.views import obtain_auth_token
 
+from tasks.views import NotificationPreferencesView
+
 from . import views
 
 urlpatterns = [
     path('', TemplateView.as_view(template_name='index.html'), name='index'),
     path('accounts/signup/', views.SignUpView.as_view(), name='signup'),
     path('accounts/profile/', views.ProfileView.as_view(), name='profile'),
+    path(
+        'accounts/notifications/',
+        NotificationPreferencesView.as_view(),
+        name='notification_preferences',
+    ),
     # Override the default reset view to send a styled HTML email (with the
     # existing plain-text template as the multipart fallback).
     path(

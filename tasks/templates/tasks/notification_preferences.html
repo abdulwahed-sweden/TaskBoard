@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Notification preferences — TaskBoard{% endblock %}
+{% block content %}
+
+<h1 class="page-title">Notification preferences</h1>
+<p class="muted">Choose which task events email you (as the assignee).</p>
+
+<form method="post">
+  {% csrf_token %}
+  {{ form.as_div }}
+  <div class="btn-row">
+    <input type="submit" value="Save preferences" class="btn btn-primary">
+    <a class="btn btn-secondary" href="{% url 'profile' %}">Back to profile</a>
+  </div>
+</form>
+
+{% endblock %}
