@@ -5,6 +5,7 @@ from rest_framework import serializers
 from organizations.custom_fields import validate_custom_fields
 from organizations.models import Membership, Project
 from organizations.permissions import has_role
+from organizations.workflow import validate_status
 
 from . import models
 
@@ -23,8 +24,10 @@ class TaskSerializer(serializers.ModelSerializer):
             "due_date",
             "owner",
             "project",
+            "status",
             "custom_fields",
         ]
+        # is_done is derived from the workflow status for typed projects.
         read_only_fields = ["created", "last_updated", "owner"]
 
     def validate_project(self, project):
@@ -39,8 +42,8 @@ class TaskSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         attrs = super().validate(attrs)
-        # Only (re)validate custom fields when the project or the fields change.
-        if "project" not in attrs and "custom_fields" not in attrs:
+        # Only (re)validate when the project, custom fields, or status change.
+        if not {"project", "custom_fields", "status"} & attrs.keys():
             return attrs
         project = attrs.get("project") or getattr(self.instance, "project", None)
         project_type = (
@@ -57,6 +60,16 @@ class TaskSerializer(serializers.ModelSerializer):
             attrs["custom_fields"] = validate_custom_fields(project_type, raw or {})
         except DjangoValidationError as exc:
             raise serializers.ValidationError({"custom_fields": exc.message_dict})
+
+        status = (
+            attrs["status"]
+            if "status" in attrs
+            else getattr(self.instance, "status", "")
+        )
+        try:
+            attrs["status"] = validate_status(project_type, status)
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError({"status": exc.messages})
         return attrs
 
 

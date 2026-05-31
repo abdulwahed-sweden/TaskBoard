@@ -291,6 +291,20 @@ def tests_seeded_project_types_exist():
     assert {"source_lang", "target_lang", "word_count", "deadline"} <= names
 
 
+def tests_seeded_status_workflows_exist():
+    software = ProjectType.objects.get(name="Software Tasks")
+    statuses = list(software.status_definitions.all())
+    assert [s.name for s in statuses] == [
+        "backlog", "in_progress", "in_review", "done",
+    ]
+    assert statuses[0].is_default
+    assert statuses[-1].is_terminal
+
+    translation = ProjectType.objects.get(name="Translation Jobs")
+    names = [s.name for s in translation.status_definitions.all()]
+    assert names == ["new", "translating", "review", "delivered"]
+
+
 def tests_switching_project_type_preserves_data_and_revalidates():
     type_a = test_helpers.create_organizations_ProjectType(name="A")
     test_helpers.create_organizations_FieldDefinition(

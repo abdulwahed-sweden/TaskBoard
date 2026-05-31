@@ -182,6 +182,7 @@ def tests_Task_create_with_custom_fields_saves_them(client):
         {
             "project": project.pk,
             "title": "typed-task",
+            "status": "backlog",
             "custom_priority": "High",
             "custom_component": "billing",
         },
@@ -199,11 +200,75 @@ def tests_Task_create_missing_required_custom_field_errors(client):
         {
             "project": project.pk,
             "title": "no-priority",
+            "status": "backlog",
             "custom_component": "billing",
         },
     )
     assert response.status_code == 200  # re-rendered with errors
     assert not Task.objects.filter(title="no-priority").exists()
+
+
+# --- status workflow (web, end-to-end) --------------------------------------
+
+def tests_Task_create_renders_status_dropdown(client):
+    user, org, _ = _member(client)
+    project = _typed_project(org, "Software Tasks")
+    response = client.get(reverse("tasks:Task_create"), {"project": project.pk})
+    body = response.content.decode("utf-8")
+    assert "Status" in body
+    assert "Backlog" in body
+
+
+def tests_Task_create_terminal_status_sets_is_done(client):
+    user, org, _ = _member(client)
+    project = _typed_project(org, "Software Tasks")
+    response = client.post(
+        reverse("tasks:Task_create"),
+        {
+            "project": project.pk,
+            "title": "done-task",
+            "custom_priority": "High",
+            "status": "done",
+        },
+    )
+    assert response.status_code == 302
+    task = Task.objects.get(title="done-task")
+    assert task.status == "done"
+    assert task.is_done is True
+
+
+def tests_Task_create_non_terminal_status_not_done(client):
+    user, org, _ = _member(client)
+    project = _typed_project(org, "Software Tasks")
+    response = client.post(
+        reverse("tasks:Task_create"),
+        {
+            "project": project.pk,
+            "title": "open-task",
+            "custom_priority": "Low",
+            "status": "backlog",
+        },
+    )
+    assert response.status_code == 302
+    task = Task.objects.get(title="open-task")
+    assert task.status == "backlog"
+    assert task.is_done is False
+
+
+def tests_Task_create_invalid_status_rejected(client):
+    user, org, _ = _member(client)
+    project = _typed_project(org, "Software Tasks")
+    response = client.post(
+        reverse("tasks:Task_create"),
+        {
+            "project": project.pk,
+            "title": "bad-status",
+            "custom_priority": "Low",
+            "status": "bogus",
+        },
+    )
+    assert response.status_code == 200
+    assert not Task.objects.filter(title="bad-status").exists()
 
 
 # --- REST API scoping -------------------------------------------------------
@@ -354,6 +419,51 @@ def tests_api_create_rejects_bad_custom_field_type():
                 "word_count": "lots",  # not a number
             },
         },
+        format="json",
+    )
+    assert response.status_code == 400
+
+
+def tests_api_create_with_status_syncs_is_done():
+    api, user, org, _ = _api_for()
+    project = _api_typed_project(org, "Translation Jobs")
+    response = api.post(
+        reverse("tasks:task-list"),
+        {
+            "title": "delivered-job",
+            "project": project.pk,
+            "custom_fields": {"source_lang": "en", "target_lang": "sv"},
+            "status": "delivered",
+        },
+        format="json",
+    )
+    assert response.status_code == 201
+    task = Task.objects.get(title="delivered-job")
+    assert task.status == "delivered"
+    assert task.is_done is True
+
+
+def tests_api_create_invalid_status_rejected():
+    api, user, org, _ = _api_for()
+    project = _api_typed_project(org, "Translation Jobs")
+    response = api.post(
+        reverse("tasks:task-list"),
+        {
+            "title": "bad",
+            "project": project.pk,
+            "custom_fields": {"source_lang": "en", "target_lang": "sv"},
+            "status": "bogus",
+        },
+        format="json",
+    )
+    assert response.status_code == 400
+
+
+def tests_api_untyped_project_rejects_status():
+    api, user, org, project = _api_for()  # project is untyped
+    response = api.post(
+        reverse("tasks:task-list"),
+        {"title": "t3", "project": project.pk, "status": "anything"},
         format="json",
     )
     assert response.status_code == 400

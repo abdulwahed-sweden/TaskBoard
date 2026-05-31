@@ -38,10 +38,15 @@ class FieldDefinitionInline(admin.TabularInline):
     extra = 1
 
 
+class StatusDefinitionInline(admin.TabularInline):
+    model = models.StatusDefinition
+    extra = 1
+
+
 class ProjectTypeAdmin(admin.ModelAdmin):
     list_display = ["name"]
     search_fields = ["name"]
-    inlines = [FieldDefinitionInline]
+    inlines = [FieldDefinitionInline, StatusDefinitionInline]
 
 
 admin.site.register(models.Organization, OrganizationAdmin)

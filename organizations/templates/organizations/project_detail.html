@@ -11,7 +11,7 @@
   {% for task in tasks %}
     <li class="item">
       <a href="{{ task.get_absolute_url }}">{{ task }}</a>
-      <span class="muted">{{ task.is_done|yesno:"Done,Open" }}</span>
+      <span class="muted">{% if task.status %}{{ task.status_label }}{% else %}{{ task.is_done|yesno:"Done,Open" }}{% endif %}</span>
     </li>
   {% empty %}
     <li class="empty">No tasks in this project yet.</li>
