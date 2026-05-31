@@ -7,7 +7,8 @@ from . import views
 
 
 router = routers.DefaultRouter()
-router.register("Task", api.TaskViewSet)
+router.register("Task", api.TaskViewSet, basename="task")
+router.register("Project", api.ProjectViewSet, basename="project")
 
 app_name = "tasks"
 urlpatterns = (

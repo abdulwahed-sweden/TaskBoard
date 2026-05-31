@@ -178,6 +178,7 @@
                 </select>
               </form>
             {% endif %}
+            <a href="{% url 'organizations:Project_list' %}">Projects</a>
             <a href="{% url 'tasks:Task_list' %}">Tasks</a>
             <a class="nav-user" href="{% url 'profile' %}">{{ user.username }}</a>
             <form method="post" action="{% url 'logout' %}">

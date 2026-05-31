@@ -1,22 +1,40 @@
 {% extends "base.html" %}
-{% block title %}My tasks — TaskBoard{% endblock %}
+{% block title %}Tasks — TaskBoard{% endblock %}
 {% block content %}
 
-<h1 class="page-title">My tasks</h1>
+<h1 class="page-title">Tasks in {{ active_organization }}</h1>
+
+{% if projects %}
+<form method="get" class="stack" style="margin-bottom:16px">
+  <label for="project-filter">Filter by project</label>
+  <select id="project-filter" name="project" onchange="this.form.submit()">
+    <option value="">All projects</option>
+    {% for project in projects %}
+      <option value="{{ project.pk }}"
+        {% if selected_project == project.pk|stringformat:"s" %}selected{% endif %}>
+        {{ project.name }}
+      </option>
+    {% endfor %}
+  </select>
+  <noscript><button type="submit" class="btn btn-secondary btn-sm">Filter</button></noscript>
+</form>
+{% endif %}
 
 <ul class="item-list">
   {% for object in object_list %}
     <li class="item">
       <a href="{{ object.get_absolute_url }}">{{ object }}</a>
-      <a class="btn btn-secondary btn-sm" href="{{ object.get_delete_url }}">Delete</a>
+      <span class="muted">{{ object.project.name }}</span>
     </li>
   {% empty %}
-    <li class="empty">No tasks yet — create your first one below.</li>
+    <li class="empty">No tasks here yet.</li>
   {% endfor %}
 </ul>
 
+{% if can_write %}
 <div class="btn-row">
   <a class="btn btn-primary" href="{% url 'tasks:Task_create' %}">Create a new task</a>
 </div>
+{% endif %}
 
 {% endblock %}

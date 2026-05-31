@@ -63,7 +63,26 @@ def create_ContentType(**kwargs):
     return ContentType.objects.create(**defaults)
 
 
+_UNSET = object()
+
+
 def create_tasks_Task(**kwargs):
+    # Resolve owner: default to a fresh user, but allow an explicit None.
+    owner = kwargs.pop("owner", _UNSET)
+    if owner is _UNSET:
+        owner = create_User()
+    # Every task now lives in a project. When none is given, create one and
+    # (for a real owner) make them a member so the task is visible under the
+    # org-membership scoping introduced in Phase 2.
+    project = kwargs.pop("project", None)
+    if project is None:
+        project = create_organizations_Project()
+        if owner is not None:
+            create_organizations_Membership(
+                user=owner,
+                organization=project.organization,
+                role=organizations_models.Membership.Role.MEMBER,
+            )
     defaults = {
         'created': '2022-01-01:09:00:00',
         'last_updated': '2022-01-01:09:00:00',
@@ -71,11 +90,11 @@ def create_tasks_Task(**kwargs):
         'notes': 'some\ntext',
         'is_done': True,
         'due_date': '2022-01-01',
-        "owner": create_User(),
     }
     defaults.update(**kwargs)
-    result = tasks_models.Task.objects.create(**defaults)
-    return result
+    defaults["owner"] = owner
+    defaults["project"] = project
+    return tasks_models.Task.objects.create(**defaults)
 
 
 def create_organizations_Organization(**kwargs):
@@ -96,5 +115,14 @@ def create_organizations_Membership(**kwargs):
     defaults.setdefault("user", create_User())
     defaults.setdefault("organization", create_organizations_Organization())
     return organizations_models.Membership.objects.create(**defaults)
+
+
+def create_organizations_Project(**kwargs):
+    defaults = {
+        "name": "%s Project" % random_string(5),
+    }
+    defaults.update(**kwargs)
+    defaults.setdefault("organization", create_organizations_Organization())
+    return organizations_models.Project.objects.create(**defaults)
 
   
