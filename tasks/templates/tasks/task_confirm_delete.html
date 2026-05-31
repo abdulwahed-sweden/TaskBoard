@@ -1,11 +1,16 @@
-
 {% extends "base.html" %}
+{% block title %}Delete task — TaskBoard{% endblock %}
 {% block content %}
+
+<h1 class="page-title">Delete task</h1>
+<p>Are you sure you want to delete <strong>{{ object }}</strong>? This can't be undone.</p>
+
 <form method="post">
   {% csrf_token %}
-  <p>Are you sure you want to delete "{{ object }}"?</p>
-  <div>
-    <input class="btn btn-danger" value="Delete {{ object }}" type="submit">
+  <div class="btn-row">
+    <input class="btn btn-danger" value="Delete" type="submit">
+    <a class="btn btn-secondary" href="{{ object.get_absolute_url }}">Cancel</a>
   </div>
 </form>
+
 {% endblock %}

@@ -1,26 +1,29 @@
 {% extends "base.html" %}
+{% block title %}Profile — TaskBoard{% endblock %}
 {% block content %}
 
-<h4>Profile: {{ user.username }}</h4>
+<h1 class="page-title">{{ user.username }}</h1>
+<p class="muted">Your account details.</p>
 
 <form method="post">
   {% csrf_token %}
-  {{ form.errors }}
+  {{ form.non_field_errors }}
   {{ form.as_div }}
-  <input type="submit" value="Save" class="btn btn-primary">
+  <div class="btn-row">
+    <input type="submit" value="Save changes" class="btn btn-primary">
+    <a class="btn btn-secondary" href="{% url 'password_change' %}">Change password</a>
+  </div>
 </form>
 
-<p class="mt-3">
-  <a href="{% url 'password_change' %}">Change password</a>
-</p>
-
-<h5 class="mt-4">My tasks</h5>
-{% for task in tasks %}
-  <div class="m-2">
-    <a href="{{ task.get_absolute_url }}">{{ task }}</a>
-  </div>
-{% empty %}
-  <p>No tasks yet. <a href="{% url 'tasks:Task_create' %}">Create one</a>.</p>
-{% endfor %}
+<h3 style="margin-top:28px;">My tasks</h3>
+<ul class="item-list">
+  {% for task in tasks %}
+    <li class="item">
+      <a href="{{ task.get_absolute_url }}">{{ task }}</a>
+    </li>
+  {% empty %}
+    <li class="empty">No tasks yet. <a href="{% url 'tasks:Task_create' %}">Create one</a>.</li>
+  {% endfor %}
+</ul>
 
 {% endblock %}

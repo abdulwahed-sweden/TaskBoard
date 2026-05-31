@@ -1,19 +1,22 @@
 {% extends "base.html" %}
+{% block title %}Log in — TaskBoard{% endblock %}
 {% block content %}
 
-<h4>Log in</h4>
+<h1 class="page-title">Log in</h1>
 
 <form method="post">
   {% csrf_token %}
-  {{ form.errors }}
+  {{ form.non_field_errors }}
   {{ form.as_div }}
-  <input type="submit" value="Log in" class="btn btn-primary">
+  <div class="btn-row">
+    <input type="submit" value="Log in" class="btn btn-primary">
+  </div>
 </form>
 
-<p class="mt-3">
+<p class="muted" style="margin-top:20px;">
   <a href="{% url 'password_reset' %}">Forgot your password?</a>
 </p>
-<p>
+<p class="muted">
   No account? <a href="{% url 'signup' %}">Sign up</a>.
 </p>
 

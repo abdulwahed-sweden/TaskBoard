@@ -1,54 +1,22 @@
-
 {% extends "base.html" %}
-{% load static %}
+{% block title %}{{ object }} — TaskBoard{% endblock %}
 {% block content %}
-    
-<p>
-    <a class="btn btn-light" href="{% url 'tasks:Task_list' %}">
-     Listing
-    </a>
-</p>
-    
-<table class="table">
-    <tr><td>Detail</td><td>{{ object }}</td></tr>
-    <tr>
-        <td>created</td>
-        <td>
-            {{ object.created }}
-        </td>
-    </tr>
-    <tr>
-        <td>last_updated</td>
-        <td>
-            {{ object.last_updated }}
-        </td>
-    </tr>
-    <tr>
-        <td>title</td>
-        <td>
-            {{ object.title }}
-        </td>
-    </tr>
-    <tr>
-        <td>notes</td>
-        <td>
-            {{ object.notes }}
-        </td>
-    </tr>
-    <tr>
-        <td>is_done</td>
-        <td>
-            {{ object.is_done }}
-        </td>
-    </tr>
-    <tr>
-        <td>due_date</td>
-        <td>
-            {{ object.due_date }}
-        </td>
-    </tr>
 
+<h1 class="page-title">{{ object }}</h1>
+
+<table class="detail">
+  <tr><td>Title</td><td>{{ object.title }}</td></tr>
+  <tr><td>Notes</td><td>{{ object.notes|linebreaksbr }}</td></tr>
+  <tr><td>Done</td><td>{{ object.is_done|yesno:"Yes,No" }}</td></tr>
+  <tr><td>Due date</td><td>{{ object.due_date|default:"—" }}</td></tr>
+  <tr><td>Created</td><td>{{ object.created }}</td></tr>
+  <tr><td>Last updated</td><td>{{ object.last_updated }}</td></tr>
 </table>
-<a class="btn btn-primary" href="{{object.get_update_url}}">Edit</a>
+
+<div class="btn-row">
+  <a class="btn btn-primary" href="{{ object.get_update_url }}">Edit</a>
+  <a class="btn btn-danger" href="{{ object.get_delete_url }}">Delete</a>
+  <a class="btn btn-secondary" href="{% url 'tasks:Task_list' %}">Back to list</a>
+</div>
 
 {% endblock %}

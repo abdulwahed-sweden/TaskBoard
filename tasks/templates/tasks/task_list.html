@@ -1,17 +1,22 @@
-
 {% extends "base.html" %}
+{% block title %}My tasks — TaskBoard{% endblock %}
 {% block content %}
-{% for object in object_list %}
-  <div class="m-2">
-    <a href="{{ object.get_absolute_url }}">{{ object }}</a>
-    <small class="ml-5">
-      <a href="{{ object.get_delete_url }}">(Delete)</a>
-    </small>
-  </div>
-{% endfor %}
-<div>
-  <a class="btn btn-primary" href="{% url 'tasks:Task_create' %}">
-  Create a new Task
-  </a>
+
+<h1 class="page-title">My tasks</h1>
+
+<ul class="item-list">
+  {% for object in object_list %}
+    <li class="item">
+      <a href="{{ object.get_absolute_url }}">{{ object }}</a>
+      <a class="btn btn-secondary btn-sm" href="{{ object.get_delete_url }}">Delete</a>
+    </li>
+  {% empty %}
+    <li class="empty">No tasks yet — create your first one below.</li>
+  {% endfor %}
+</ul>
+
+<div class="btn-row">
+  <a class="btn btn-primary" href="{% url 'tasks:Task_create' %}">Create a new task</a>
 </div>
+
 {% endblock %}

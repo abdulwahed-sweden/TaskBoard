@@ -1,18 +1,18 @@
-
 {% extends "base.html" %}
+{% block title %}TaskBoard — Home{% endblock %}
 {% block content %}
 
-<div class='container'>
-  <div class='card'>
-    <div class='card-body'>
-      <div class="m-2">
-        <h4>tasks</h4>
-      </div>
-      <div class="m-2">
-      <a class="btn btn-light" href="{% url 'tasks:Task_list' %}">Task Listing</a>
-      </div>
-    </div>
-  </div>
+<h1 class="page-title">Welcome to TaskBoard</h1>
+<p class="muted">A simple place to keep track of what needs doing.</p>
+
+<div class="btn-row">
+  {% if user.is_authenticated %}
+    <a class="btn btn-primary" href="{% url 'tasks:Task_list' %}">View my tasks</a>
+    <a class="btn btn-secondary" href="{% url 'tasks:Task_create' %}">New task</a>
+  {% else %}
+    <a class="btn btn-primary" href="{% url 'login' %}">Log in</a>
+    <a class="btn btn-secondary" href="{% url 'signup' %}">Create an account</a>
+  {% endif %}
 </div>
 
 {% endblock %}
