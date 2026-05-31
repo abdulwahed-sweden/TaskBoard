@@ -6,6 +6,7 @@ from organizations.permissions import has_role
 
 from . import models
 from . import serializers
+from .activity import log_changes, log_created, snapshot
 
 
 class IsOrgMemberForWrites(permissions.IsAuthenticated):
@@ -35,7 +36,17 @@ class TaskViewSet(viewsets.ModelViewSet):
         return obj.project.organization
 
     def perform_create(self, serializer):
-        serializer.save(owner=self.request.user)
+        # Default the assignee to the requesting user when none was supplied.
+        extra = {}
+        if not serializer.validated_data.get("owner"):
+            extra["owner"] = self.request.user
+        task = serializer.save(**extra)
+        log_created(task, self.request.user)
+
+    def perform_update(self, serializer):
+        previous = snapshot(serializer.instance)
+        task = serializer.save()
+        log_changes(task, self.request.user, previous)
 
 
 class ProjectViewSet(viewsets.ModelViewSet):

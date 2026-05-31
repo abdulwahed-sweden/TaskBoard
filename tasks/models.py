@@ -95,4 +95,52 @@ class Task(models.Model):
         return reverse("tasks:Task_delete", args=(self.pk,))
 
 
+class Comment(models.Model):
+    """A discussion message on a task, by a project member."""
+
+    task = models.ForeignKey(
+        Task, on_delete=models.CASCADE, related_name="comments"
+    )
+    author = models.ForeignKey(
+        "auth.User", null=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    body = models.TextField()
+    created = models.DateTimeField(auto_now_add=True, editable=False)
+
+    class Meta:
+        ordering = ["created"]
+
+    def __str__(self):
+        return f"Comment by {self.author} on {self.task}"
+
+
+class Activity(models.Model):
+    """Append-only record of a task lifecycle event. There are no edit/delete
+    paths — entries are only ever created (see tasks/activity.py)."""
+
+    class Action(models.TextChoices):
+        CREATED = "created", "Created"
+        UPDATED = "updated", "Updated"
+        STATUS_CHANGED = "status_changed", "Status changed"
+        ASSIGNED = "assigned", "Assigned"
+
+    task = models.ForeignKey(
+        Task, on_delete=models.CASCADE, related_name="activities"
+    )
+    actor = models.ForeignKey(
+        "auth.User", null=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    action = models.CharField(max_length=20, choices=Action.choices)
+    description = models.CharField(max_length=255)
+    detail = models.JSONField(default=dict, blank=True)
+    created = models.DateTimeField(auto_now_add=True, editable=False)
+
+    class Meta:
+        ordering = ["-created", "-id"]
+        verbose_name_plural = "activities"
+
+    def __str__(self):
+        return self.description
+
+
 

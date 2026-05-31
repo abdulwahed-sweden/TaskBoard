@@ -28,7 +28,9 @@ class TaskSerializer(serializers.ModelSerializer):
             "custom_fields",
         ]
         # is_done is derived from the workflow status for typed projects.
-        read_only_fields = ["created", "last_updated", "owner"]
+        # owner (assignee) is writable but defaults to the request user on
+        # create; see TaskViewSet.perform_create.
+        read_only_fields = ["created", "last_updated"]
 
     def validate_project(self, project):
         """A task may only be filed into a project in an org the requesting
@@ -42,10 +44,21 @@ class TaskSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         attrs = super().validate(attrs)
-        # Only (re)validate when the project, custom fields, or status change.
+        project = attrs.get("project") or getattr(self.instance, "project", None)
+
+        # A supplied assignee must belong to the project's organization.
+        owner = attrs.get("owner")
+        if owner is not None and project is not None:
+            if not Membership.objects.filter(
+                user=owner, organization=project.organization
+            ).exists():
+                raise serializers.ValidationError(
+                    {"owner": "Assignee must be a member of the project's organization."}
+                )
+
+        # Only (re)validate the rest when project, custom fields, or status change.
         if not {"project", "custom_fields", "status"} & attrs.keys():
             return attrs
-        project = attrs.get("project") or getattr(self.instance, "project", None)
         project_type = (
             project.project_type
             if project and project.project_type_id
