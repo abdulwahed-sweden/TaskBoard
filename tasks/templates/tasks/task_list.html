@@ -6,18 +6,69 @@
 
 {% if projects %}
 <form method="get" class="stack" style="margin-bottom:16px">
-  <label for="project-filter">Filter by project</label>
-  <select id="project-filter" name="project" onchange="this.form.submit()">
-    <option value="">All projects</option>
-    {% for project in projects %}
-      <option value="{{ project.pk }}"
-        {% if selected_project == project.pk|stringformat:"s" %}selected{% endif %}>
-        {{ project.name }}
-      </option>
-    {% endfor %}
-  </select>
-  <noscript><button type="submit" class="btn btn-secondary btn-sm">Filter</button></noscript>
+  <div>
+    <label for="project-filter">Project</label>
+    <select id="project-filter" name="project">
+      <option value="">All projects</option>
+      {% for project in projects %}
+        <option value="{{ project.pk }}"
+          {% if selected_project == project.pk|stringformat:"s" %}selected{% endif %}>
+          {{ project.name }}
+        </option>
+      {% endfor %}
+    </select>
+  </div>
+  <div>
+    <label for="status-filter">Status</label>
+    <select id="status-filter" name="status">
+      <option value="">Any status</option>
+      {% for status in status_options %}
+        <option value="{{ status }}" {% if filters.status == status %}selected{% endif %}>{{ status }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div>
+    <label for="done-filter">Done</label>
+    <select id="done-filter" name="is_done">
+      <option value="">Any</option>
+      <option value="true" {% if filters.is_done == "true" %}selected{% endif %}>Done</option>
+      <option value="false" {% if filters.is_done == "false" %}selected{% endif %}>Open</option>
+    </select>
+  </div>
+  <div>
+    <label for="q-filter">Search</label>
+    <input id="q-filter" type="text" name="q" value="{{ filters.q|default:'' }}" placeholder="title or notes">
+  </div>
+  <div class="btn-row">
+    <button type="submit" class="btn btn-secondary btn-sm">Filter</button>
+  </div>
 </form>
+
+{% if selected_project_obj %}
+  {% if saved_views %}
+  <div class="stack" style="margin-bottom:12px">
+    <strong>Saved views:</strong>
+    {% for view in saved_views %}
+      <a href="{% url 'tasks:Task_list' %}?{{ view.querystring }}">{{ view.name }}</a>
+      {% if can_write %}
+        <form method="post" action="{% url 'tasks:savedview_delete' view.pk %}" style="display:inline">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-secondary btn-sm" title="Delete view">×</button>
+        </form>
+      {% endif %}
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% if can_write %}
+  <form method="post" action="{% url 'tasks:savedview_create' %}" class="btn-row" style="margin-bottom:16px">
+    {% csrf_token %}
+    <input type="hidden" name="project" value="{{ selected_project_obj.pk }}">
+    {% for key, value in current_filters.items %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endfor %}
+    <input type="text" name="name" placeholder="Save current filters as…" required>
+    <button type="submit" class="btn btn-secondary btn-sm">Save this view</button>
+  </form>
+  {% endif %}
+{% endif %}
 {% endif %}
 
 <ul class="item-list">

@@ -1,11 +1,14 @@
 
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
+from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse, reverse_lazy
+from django.utils import timezone
+from django.utils.http import urlencode
 from django.views import generic
-from django.urls import reverse_lazy
 
-from organizations.models import Membership
+from organizations.models import Membership, Project
 from organizations.permissions import has_role
 from organizations.views import ActiveOrganizationMixin
 
@@ -16,6 +19,41 @@ from . import notifications
 from .activity import log_changes, log_created, snapshot
 
 IMPORT_SESSION_KEY = "task_import"
+
+
+def task_filters_from_request(request):
+    """Canonical task-list filters (status / is_done / q), omitting blanks.
+
+    Reads POST data on a POST (the "save view" form) and query params otherwise
+    (the list and saved-view links), so every caller agrees on the filter shape.
+    ``project`` is handled separately.
+    """
+    data = request.POST if request.method == "POST" else request.GET
+    filters = {}
+    status = data.get("status", "").strip()
+    if status:
+        filters["status"] = status
+    is_done = data.get("is_done", "").strip().lower()
+    if is_done in ("true", "false"):
+        filters["is_done"] = is_done
+    q = data.get("q", "").strip()
+    if q:
+        filters["q"] = q
+    return filters
+
+
+def apply_task_filters(queryset, filters):
+    """Narrow ``queryset`` by a canonical filter dict (see above)."""
+    if "status" in filters:
+        queryset = queryset.filter(status=filters["status"])
+    if "is_done" in filters:
+        queryset = queryset.filter(is_done=filters["is_done"] == "true")
+    if "q" in filters:
+        term = filters["q"]
+        queryset = queryset.filter(
+            Q(title__icontains=term) | Q(notes__icontains=term)
+        )
+    return queryset
 
 
 class OrgScopedTaskMixin(LoginRequiredMixin):
@@ -48,8 +86,8 @@ class TaskWriteRoleMixin(OrgScopedTaskMixin):
 
 
 class TaskListView(ActiveOrganizationMixin, generic.ListView):
-    """Tasks across the active organization, optionally filtered to one project
-    via ``?project=<id>``."""
+    """Tasks across the active organization, filterable by `?project=`,
+    `?status=`, `?is_done=`, and `?q=` (search) — all within the org scope."""
 
     model = models.Task
 
@@ -64,20 +102,36 @@ class TaskListView(ActiveOrganizationMixin, generic.ListView):
             # Already constrained to the active org, so a foreign id just
             # yields an empty list rather than leaking.
             queryset = queryset.filter(project_id=project_id)
-        return queryset
+        return apply_task_filters(queryset, task_filters_from_request(self.request))
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        projects = (
-            self.active_organization.projects.all()
-            if self.active_organization
-            else []
-        )
+        org = self.active_organization
+        projects = org.projects.all() if org else []
         context["projects"] = projects
-        context["selected_project"] = self.request.GET.get("project") or ""
+        selected_project_id = self.request.GET.get("project") or ""
+        context["selected_project"] = selected_project_id
+        context["filters"] = task_filters_from_request(self.request)
         context["can_write"] = has_role(
-            self.request.user, self.active_organization, Membership.Role.MEMBER
+            self.request.user, org, Membership.Role.MEMBER
         )
+        # Distinct statuses present in the org, for the filter dropdown.
+        context["status_options"] = sorted(
+            models.Task.objects.filter(project__organization=org)
+            .exclude(status="")
+            .values_list("status", flat=True)
+            .distinct()
+        ) if org else []
+        # Saved views only make sense in a single-project context.
+        selected_project = None
+        if selected_project_id and org:
+            selected_project = org.projects.filter(pk=selected_project_id).first()
+        context["selected_project_obj"] = selected_project
+        context["saved_views"] = (
+            selected_project.saved_views.all() if selected_project else []
+        )
+        # Hidden-input pairs so the "save view" form carries the current filters.
+        context["current_filters"] = task_filters_from_request(self.request)
         return context
 
 
@@ -334,3 +388,84 @@ class NotificationPreferencesView(LoginRequiredMixin, generic.UpdateView):
             user=self.request.user
         )
         return preference
+
+
+class SavedViewCreateView(LoginRequiredMixin, generic.View):
+    """Save the current task-list filters as a named, project-shared view.
+    Org-scoped (foreign project 404s) and requires `member`+."""
+
+    http_method_names = ["post"]
+
+    def post(self, request):
+        project = get_object_or_404(
+            Project.objects.filter(organization__members=request.user),
+            pk=request.POST.get("project"),
+        )
+        if not has_role(request.user, project.organization, Membership.Role.MEMBER):
+            raise PermissionDenied
+        name = request.POST.get("name", "").strip()
+        if name:
+            models.SavedView.objects.update_or_create(
+                project=project,
+                name=name,
+                defaults={
+                    "created_by": request.user,
+                    "filters": task_filters_from_request(request),
+                },
+            )
+        params = {"project": project.pk}
+        params.update(task_filters_from_request(request))
+        return redirect(f"{reverse('tasks:Task_list')}?{urlencode(params)}")
+
+
+class SavedViewDeleteView(LoginRequiredMixin, generic.View):
+    """Delete a saved view (member+ in its project's org)."""
+
+    http_method_names = ["post"]
+
+    def post(self, request, pk):
+        saved_view = get_object_or_404(
+            models.SavedView.objects.filter(
+                project__organization__members=request.user
+            ),
+            pk=pk,
+        )
+        if not has_role(
+            request.user, saved_view.project.organization, Membership.Role.MEMBER
+        ):
+            raise PermissionDenied
+        project_id = saved_view.project_id
+        saved_view.delete()
+        return redirect(
+            f"{reverse('tasks:Task_list')}?{urlencode({'project': project_id})}"
+        )
+
+
+class DashboardView(ActiveOrganizationMixin, generic.TemplateView):
+    """At-a-glance overview of the active organization's work."""
+
+    template_name = "tasks/dashboard.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        org = self.active_organization
+        context["organization"] = org
+        if org is None:
+            return context
+        tasks = models.Task.objects.filter(project__organization=org)
+        context["total"] = tasks.count()
+        context["open_count"] = tasks.filter(is_done=False).count()
+        context["done_count"] = tasks.filter(is_done=True).count()
+        context["overdue_count"] = tasks.filter(
+            is_done=False, due_date__lt=timezone.localdate()
+        ).count()
+        context["status_counts"] = list(
+            tasks.values("status")
+            .annotate(count=Count("id"))
+            .order_by("-count", "status")
+        )
+        context["recent_activity"] = (
+            models.Activity.objects.filter(task__project__organization=org)
+            .select_related("task", "actor")[:10]
+        )
+        return context

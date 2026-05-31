@@ -72,6 +72,34 @@ def tests_Task_list_view_filters_by_project(client):
     assert str(in_second) not in body
 
 
+def tests_Task_list_view_filters_by_status_done_and_search(client):
+    user, org, project = _member(client)
+    done = test_helpers.create_tasks_Task(
+        owner=user, project=project, title="ship-it", status="done", is_done=True
+    )
+    open_ = test_helpers.create_tasks_Task(
+        owner=user, project=project, title="draft-spec", status="todo", is_done=False
+    )
+
+    # status filter
+    body = client.get(
+        reverse("tasks:Task_list"), {"status": "done"}
+    ).content.decode("utf-8")
+    assert str(done) in body and str(open_) not in body
+
+    # is_done filter
+    body = client.get(
+        reverse("tasks:Task_list"), {"is_done": "false"}
+    ).content.decode("utf-8")
+    assert str(open_) in body and str(done) not in body
+
+    # search filter (title/notes icontains)
+    body = client.get(
+        reverse("tasks:Task_list"), {"q": "ship"}
+    ).content.decode("utf-8")
+    assert str(done) in body and str(open_) not in body
+
+
 # --- create (members+) ------------------------------------------------------
 
 def tests_Task_create_view_files_into_project_and_sets_owner(client):

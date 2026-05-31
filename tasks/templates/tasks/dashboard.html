@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — TaskBoard{% endblock %}
+{% block content %}
+
+<h1 class="page-title">{{ organization }} dashboard</h1>
+
+{% if organization %}
+<table class="detail">
+  <tr><td>Total tasks</td><td>{{ total }}</td></tr>
+  <tr><td>Open</td><td>{{ open_count }}</td></tr>
+  <tr><td>Done</td><td>{{ done_count }}</td></tr>
+  <tr><td>Overdue</td><td>{{ overdue_count }}</td></tr>
+</table>
+
+<h2>By status</h2>
+<ul class="item-list">
+  {% for row in status_counts %}
+    <li class="item">
+      <span>{{ row.status|default:"—" }}</span>
+      <span class="muted">{{ row.count }}</span>
+    </li>
+  {% empty %}
+    <li class="empty">No tasks yet.</li>
+  {% endfor %}
+</ul>
+
+<h2>Recent activity</h2>
+<ul class="item-list">
+  {% for activity in recent_activity %}
+    <li class="item" style="display:block">
+      <div><a href="{{ activity.task.get_absolute_url }}">{{ activity.task }}</a> — {{ activity.description }}</div>
+      <div class="muted">{{ activity.created }}</div>
+    </li>
+  {% empty %}
+    <li class="empty">No activity yet.</li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="muted">No active organization.</p>
+{% endif %}
+
+{% endblock %}
