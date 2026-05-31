@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}{{ project.name }} — TaskBoard{% endblock %}
+{% block content %}
+
+<h1 class="page-title">{{ project.name }}</h1>
+<p class="muted">{{ project.organization }}</p>
+{% if project.description %}<p>{{ project.description|linebreaksbr }}</p>{% endif %}
+
+<h2>Tasks</h2>
+<ul class="item-list">
+  {% for task in tasks %}
+    <li class="item">
+      <a href="{{ task.get_absolute_url }}">{{ task }}</a>
+      <span class="muted">{{ task.is_done|yesno:"Done,Open" }}</span>
+    </li>
+  {% empty %}
+    <li class="empty">No tasks in this project yet.</li>
+  {% endfor %}
+</ul>
+
+<div class="btn-row">
+  {% if can_write %}
+  <a class="btn btn-primary" href="{% url 'tasks:Task_create' %}?project={{ project.pk }}">Add a task</a>
+  {% endif %}
+  <a class="btn btn-secondary" href="{% url 'organizations:Project_list' %}">All projects</a>
+</div>
+
+{% endblock %}

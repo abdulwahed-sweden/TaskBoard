@@ -11,9 +11,11 @@ API (Django REST Framework). It was originally scaffolded with Django Builder
 and has since been upgraded to Django 6 and cleaned up.
 
 It is being evolved into a multi-tenant work platform (see `ROADMAP.md`).
-**Phase 1 (organizations & membership) has landed:** users belong to
-organizations, with a per-session "active org." Tasks are still owner-scoped for
-now — moving them under organizations/projects is Phase 2.
+**Phases 1–2 have landed:** users belong to organizations (with a per-session
+"active org"), organizations contain projects, and every task lives in a
+project. Task access is **membership-scoped** — you see/act on tasks in projects
+inside orgs you belong to, gated by role (viewers are read-only). Phase 3
+(project types + custom fields) is next.
 
 The codebase is intentionally small. Prefer keeping it that way: add behaviour
 where it belongs rather than introducing new layers or abstractions. Tenancy
@@ -43,25 +45,26 @@ TaskBoard/
 │   ├── urls.py               # root urlconf
 │   ├── wsgi.py / asgi.py
 │   └── consumers.py / routing.py   # Channels stubs (unused, see "Known quirks")
-├── organizations/            # multi-tenancy: orgs, memberships, active-org
-│   ├── models.py             # Organization, Membership (+ Role, role_rank)
+├── organizations/            # multi-tenancy: orgs, memberships, projects
+│   ├── models.py             # Organization, Membership (+ Role, role_rank), Project
 │   ├── services.py           # create_personal_organization (shared w/ migration)
 │   ├── permissions.py        # has_role, RequireRoleMixin
 │   ├── sessions.py           # active-org session helpers
 │   ├── context_processors.py # exposes active_organization / user_organizations
-│   ├── views.py              # SwitchOrganizationView
-│   ├── urls.py               # /organizations/switch/
-│   ├── admin.py              # Organization + Membership admin
-│   └── migrations/           # 0001 models, 0002 personal orgs for existing users
-├── tasks/                    # the work-item app
-│   ├── models.py             # Task model
-│   ├── views.py              # class-based views
-│   ├── api.py                # DRF viewset
-│   ├── serializers.py        # DRF serializer
-│   ├── forms.py              # ModelForm
+│   ├── views.py              # SwitchOrganizationView, ActiveOrganizationMixin, Project views
+│   ├── urls.py               # /organizations/switch/, /organizations/projects/...
+│   ├── admin.py              # Organization + Membership + Project admin
+│   ├── templates/organizations/  # project_list / project_detail / project_form
+│   └── migrations/           # 0001 models, 0002 personal orgs, 0003 Project
+├── tasks/                    # the work-item app (membership-scoped)
+│   ├── models.py             # Task model (FK to organizations.Project)
+│   ├── views.py              # CBVs: OrgScopedTaskMixin, TaskWriteRoleMixin, ...
+│   ├── api.py                # DRF Task + Project viewsets (org-scoped)
+│   ├── serializers.py        # DRF serializers
+│   ├── forms.py              # ModelForm (project-aware)
 │   ├── admin.py              # admin registration
 │   ├── urls.py               # app urlconf (web + api routes)
-│   ├── migrations/
+│   ├── migrations/           # 0001, 0002 add project, 0003 backfill, 0004 require
 │   └── templates/tasks/      # task_list / task_detail / task_form / task_confirm_delete
 ├── templates/                # project-level templates (base.html, index.html, htmx/)
 └── tests/                    # tests/tasks/ and tests/organizations/
@@ -120,28 +123,43 @@ The `organizations` app holds the tenancy layer.
 - **Permission helpers** (`organizations/permissions.py`): `has_role(user, org,
   min_role)` predicate and `RequireRoleMixin` (set `required_role`, implement
   `get_organization()`) for gating views by role. Use these instead of querying
-  `Membership` ad hoc. Task views are **not** org-scoped yet — that arrives in
-  Phase 2; today they remain owner-scoped (see Web layer below).
+  `Membership` ad hoc.
+- **Projects** (`organizations/models.py` `Project`): a named container for work
+  inside an org (`organization` FK, `name`, `description`; name unique per org).
+  Every `Task` belongs to a project. `ActiveOrganizationMixin` (in
+  `organizations/views.py`) resolves `self.active_organization` and, if
+  `required_role` is set, enforces it. `ProjectListView` (active-org projects),
+  `ProjectDetailView` (org-scoped; lists the project's tasks),
+  `ProjectCreateView` (members+; routes `organizations:Project_list` /
+  `_detail` / `_create`). Project edit/delete is admin-only for now.
 
 ### The `Task` model
-`tasks/models.py` defines a single `Task` with: `owner` (FK to `auth.User`,
-nullable), `title`, `notes`, `is_done`, `due_date`, plus auto-managed `created`
-and `last_updated` timestamps. Default ordering is newest-first (`-created`).
-The model also exposes `get_absolute_url`, `get_update_url`, `get_delete_url`
-and a static `get_create_url`, which the templates rely on — keep these in sync
-with the URL names in `tasks/urls.py` if you rename routes.
+`tasks/models.py` defines a single `Task` with: `project` (FK to
+`organizations.Project`, **required** — every task lives in a project), `owner`
+(FK to `auth.User`, nullable — the creator), `title`, `notes`, `is_done`,
+`due_date`, plus auto-managed `created`/`last_updated` timestamps. Default
+ordering is newest-first (`-created`). The model exposes `get_absolute_url`,
+`get_update_url`, `get_delete_url` and a static `get_create_url`, which the
+templates rely on — keep these in sync with `tasks/urls.py` if you rename routes.
 
 ### Web layer
 Plain Django generic class-based views (`ListView`, `CreateView`, `DetailView`,
 `UpdateView`, `DeleteView`) in `tasks/views.py`. Create/Update use
-`forms.TaskForm`. Templates live in `tasks/templates/tasks/` and extend
+`forms.TaskForm` (which takes a `projects` queryset limiting the selectable
+project). Templates live in `tasks/templates/tasks/` and extend
 `templates/base.html`.
 
-**Task views require login and are owner-scoped.** All task views use
-`LoginRequiredMixin`; the read/update/delete views go through `OwnedTasksMixin`,
-which filters the queryset to `owner=request.user` (so another user's task 404s
-rather than leaking). `TaskCreateView.form_valid` sets `owner` to the logged-in
-user, so `owner` is intentionally **not** a `TaskForm` field.
+**Task views require login and are membership-scoped** (this replaced the old
+owner-scoping in Phase 2):
+- `OrgScopedTaskMixin.get_queryset()` filters to
+  `project__organization__members=request.user` — the read boundary, so a task
+  in another org 404s on detail/update/delete rather than leaking.
+- `TaskListView` (via `ActiveOrganizationMixin`) shows tasks in the **active
+  org**, with an optional `?project=<id>` filter (constrained to the active org).
+- Writes require `member`+: `TaskCreateView` gates on the active org and still
+  sets `owner=request.user` in `form_valid`; `TaskUpdateView`/`TaskDeleteView`
+  use `TaskWriteRoleMixin`, which 403s if the user lacks `member` in the task's
+  org (so a `viewer` can read the detail page but not edit/delete).
 
 ### Accounts & profile
 Authentication uses Django's built-in views, wired in `TaskBoard/urls.py`:
@@ -165,15 +183,24 @@ mail is sent in dev). For production set `DJANGO_EMAIL_BACKEND` and the
 delivery via pytest-django's `mailoutbox` fixture.
 
 ### API layer
-DRF `ModelViewSet` (`tasks/api.py`) registered on a `DefaultRouter` under
-`/tasks/api/v1/`. **The API requires authentication** (`IsAuthenticated`), so
-unauthenticated requests correctly return `403`. The serializer
-(`tasks/serializers.py`) currently exposes all model fields.
+DRF viewsets (`tasks/api.py`) — `TaskViewSet` and `ProjectViewSet` — registered
+on a `DefaultRouter` under `/tasks/api/v1/` (basenames `task`/`project`; reverse
+as `tasks:task-list`, `tasks:task-detail`, etc.). **The API requires
+authentication**, so unauthenticated requests return `403`. Both viewsets are
+**org-scoped**: `get_queryset()` filters to objects in orgs the user belongs to
+(never `.all()`), so foreign objects 404. The `IsOrgMemberForWrites` permission
+makes writes require `member` in the object's org (reads need `viewer`), and the
+serializers reject filing a task/project into an org the user can't write to.
+`owner` is set from the request on create and is read-only, as are
+`created`/`last_updated`.
 
 ### URL names
-App namespace is `tasks`. Reverse routes as `tasks:Task_list`,
-`tasks:Task_create`, `tasks:Task_detail`, `tasks:Task_update`,
-`tasks:Task_delete`.
+App namespace is `tasks`. Web routes: `tasks:Task_list`, `tasks:Task_create`,
+`tasks:Task_detail`, `tasks:Task_update`, `tasks:Task_delete`. API routes
+(router): `tasks:task-list`/`tasks:task-detail`,
+`tasks:project-list`/`tasks:project-detail`. Project web routes live in the
+`organizations` namespace: `organizations:Project_list` / `_detail` / `_create`
+and `organizations:switch`.
 
 ## Configuration
 
@@ -195,9 +222,13 @@ configure static file serving, and run `manage.py check --deploy`.
   re-exports `TaskBoard.settings`). Override test-only settings there.
 - `test_helpers.py` holds small factory functions (e.g. `create_tasks_Task`,
   `create_User`, `create_organizations_Organization`,
-  `create_organizations_Membership`). Reuse them in new tests instead of
-  building objects inline. Tests live under `tests/<app>/` (e.g.
-  `tests/tasks/`, `tests/organizations/`).
+  `create_organizations_Membership`, `create_organizations_Project`). Reuse
+  them in new tests instead of building objects inline. Tests live under
+  `tests/<app>/` (e.g. `tests/tasks/`, `tests/organizations/`). Note
+  `create_tasks_Task` auto-creates a project (and, for a real owner, an org
+  membership) when none is passed, so the task is visible under org-scoping;
+  pass an explicit `project=` to control which org a task lands in. For API
+  tests use `rest_framework.test.APIClient` with `force_authenticate`.
 - Tests that touch the database must be marked — the existing module sets
   `pytestmark = [pytest.mark.django_db]` at the top; follow that pattern.
 - Keep views side-effect free beyond their HTTP responsibilities so they stay
@@ -221,5 +252,8 @@ configure static file serving, and run `manage.py check --deploy`.
   runs over WSGI). Safe to ignore or delete if you're not adding websockets.
 - **`htmx/` templates are unused.** `templates/htmx/*` were scaffolded but the
   project does not use htmx. Remove them if you want a leaner template tree.
-- **The serializer exposes every field, including timestamps.** Tighten
-  `fields`/add `read_only_fields` before exposing the API publicly.
+- **Fallback "Unassigned" org.** The Phase 2 task backfill
+  (`tasks/migrations/0003`) parks tasks with no owner (or whose owner had no
+  membership) in a memberless `Unassigned` organization so the `project` FK can
+  be non-null. Those tasks are intentionally invisible until an admin reassigns
+  them — mirroring how null-owner tasks were invisible under the old scoping.

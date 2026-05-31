@@ -2,7 +2,7 @@ import pytest
 import test_helpers
 from django.urls import reverse
 
-from organizations.models import Membership, Organization, role_rank
+from organizations.models import Membership, Organization, Project, role_rank
 from organizations.permissions import RequireRoleMixin, has_role
 from organizations.services import create_personal_organization
 from organizations.sessions import (
@@ -199,6 +199,73 @@ def tests_get_active_organization_none_without_membership(rf):
     request.user = user
     request.session = {}
     assert get_active_organization(request) is None
+
+
+# --- projects ---------------------------------------------------------------
+
+def _logged_in_member(client, role=Membership.Role.MEMBER):
+    """User in a fresh org (with ``role``), logged in, with that org active."""
+    user = test_helpers.create_User()
+    org = test_helpers.create_organizations_Organization()
+    test_helpers.create_organizations_Membership(
+        user=user, organization=org, role=role
+    )
+    client.force_login(user)
+    session = client.session
+    session[SESSION_KEY] = org.pk
+    session.save()
+    return user, org
+
+
+def tests_project_list_shows_only_active_org_projects(client):
+    user, org = _logged_in_member(client)
+    mine = test_helpers.create_organizations_Project(
+        organization=org, name="Mine"
+    )
+    theirs = test_helpers.create_organizations_Project(name="Theirs")
+    response = client.get(reverse("organizations:Project_list"))
+    assert response.status_code == 200
+    body = response.content.decode("utf-8")
+    assert mine.name in body
+    assert theirs.name not in body
+
+
+def tests_project_detail_lists_its_tasks(client):
+    user, org = _logged_in_member(client)
+    project = test_helpers.create_organizations_Project(organization=org)
+    task = test_helpers.create_tasks_Task(
+        owner=user, project=project, title="proj-task"
+    )
+    response = client.get(
+        reverse("organizations:Project_detail", args=[project.pk])
+    )
+    assert response.status_code == 200
+    assert "proj-task" in response.content.decode("utf-8")
+
+
+def tests_project_detail_other_org_404(client):
+    _logged_in_member(client)
+    foreign = test_helpers.create_organizations_Project()
+    response = client.get(
+        reverse("organizations:Project_detail", args=[foreign.pk])
+    )
+    assert response.status_code == 404
+
+
+def tests_project_create_requires_member_role(client):
+    _logged_in_member(client, role=Membership.Role.VIEWER)
+    assert client.get(reverse("organizations:Project_create")).status_code == 403
+
+
+def tests_project_create_attaches_to_active_org(client):
+    user, org = _logged_in_member(client)
+    response = client.post(
+        reverse("organizations:Project_create"),
+        {"name": "Roadmap", "description": "Q3 work"},
+    )
+    assert response.status_code == 302
+    project = Project.objects.get(name="Roadmap")
+    assert project.organization == org
 
 
 # --- context processor ------------------------------------------------------

@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Projects — TaskBoard{% endblock %}
+{% block content %}
+
+<h1 class="page-title">Projects in {{ active_organization }}</h1>
+
+<ul class="item-list">
+  {% for project in projects %}
+    <li class="item">
+      <a href="{{ project.get_absolute_url }}">{{ project.name }}</a>
+      <span class="muted">{{ project.tasks.count }} task{{ project.tasks.count|pluralize }}</span>
+    </li>
+  {% empty %}
+    <li class="empty">No projects in this organization yet.</li>
+  {% endfor %}
+</ul>
+
+{% if can_create %}
+<div class="btn-row">
+  <a class="btn btn-primary" href="{% url 'organizations:Project_create' %}">Create a new project</a>
+</div>
+{% endif %}
+
+{% endblock %}

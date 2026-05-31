@@ -5,6 +5,7 @@
 <h1 class="page-title">{{ object }}</h1>
 
 <table class="detail">
+  <tr><td>Project</td><td><a href="{{ object.project.get_absolute_url }}">{{ object.project.name }}</a></td></tr>
   <tr><td>Title</td><td>{{ object.title }}</td></tr>
   <tr><td>Notes</td><td>{{ object.notes|linebreaksbr }}</td></tr>
   <tr><td>Done</td><td>{{ object.is_done|yesno:"Yes,No" }}</td></tr>

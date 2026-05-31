@@ -25,5 +25,14 @@ class MembershipAdmin(admin.ModelAdmin):
     readonly_fields = ["created"]
 
 
+class ProjectAdmin(admin.ModelAdmin):
+    list_display = ["name", "organization", "created"]
+    list_filter = ["organization"]
+    search_fields = ["name", "organization__name"]
+    autocomplete_fields = ["organization"]
+    readonly_fields = ["created"]
+
+
 admin.site.register(models.Organization, OrganizationAdmin)
 admin.site.register(models.Membership, MembershipAdmin)
+admin.site.register(models.Project, ProjectAdmin)

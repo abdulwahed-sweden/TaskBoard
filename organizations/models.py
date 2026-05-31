@@ -1,4 +1,5 @@
 from django.db import models
+from django.urls import reverse
 
 
 class Organization(models.Model):
@@ -20,6 +21,32 @@ class Organization(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class Project(models.Model):
+    """A container for work (tasks) inside an organization."""
+
+    organization = models.ForeignKey(
+        Organization, on_delete=models.CASCADE, related_name="projects"
+    )
+    name = models.CharField(max_length=120)
+    description = models.TextField(blank=True, default="")
+    created = models.DateTimeField(auto_now_add=True, editable=False)
+
+    class Meta:
+        ordering = ["name"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["organization", "name"],
+                name="unique_project_name_per_organization",
+            )
+        ]
+
+    def __str__(self):
+        return self.name
+
+    def get_absolute_url(self):
+        return reverse("organizations:Project_detail", args=(self.pk,))
 
 
 class Membership(models.Model):

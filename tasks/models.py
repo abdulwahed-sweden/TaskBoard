@@ -5,6 +5,9 @@ from django.urls import reverse
 class Task(models.Model):
 
     owner = models.ForeignKey("auth.User", null=True, on_delete=models.CASCADE)
+    project = models.ForeignKey(
+        "organizations.Project", on_delete=models.CASCADE, related_name="tasks"
+    )
 
     # Fields
     created = models.DateTimeField(auto_now_add=True, editable=False)
