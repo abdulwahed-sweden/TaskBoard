@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Import complete — TaskBoard{% endblock %}
+{% block content %}
+
+<h1 class="page-title">Import complete</h1>
+<p><strong>{{ result.created }}</strong> task{{ result.created|pluralize }} imported into {{ project.name }}.</p>
+
+{% if result.skipped %}
+  <h2>Skipped rows ({{ result.skipped|length }})</h2>
+  <p class="muted">These rows had validation errors and were not imported.</p>
+  <ul class="item-list">
+    {% for row in result.skipped %}
+      <li class="item" style="display:block">
+        <div>Row {{ row.row_number }}</div>
+        <div class="helptext" style="color:var(--danger-dark)">
+          {% for field, message in row.errors.items %}{{ field }}: {{ message }}{% if not forloop.last %}; {% endif %}{% endfor %}
+        </div>
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p class="muted">No rows were skipped.</p>
+{% endif %}
+
+<div class="btn-row">
+  <a class="btn btn-primary" href="{{ project.get_absolute_url }}">View project</a>
+  <a class="btn btn-secondary" href="{% url 'tasks:import' %}">Import another file</a>
+</div>
+
+{% endblock %}

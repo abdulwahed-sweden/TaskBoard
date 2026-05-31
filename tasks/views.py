@@ -1,7 +1,7 @@
 
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import get_object_or_404, redirect, render
 from django.views import generic
 from django.urls import reverse_lazy
 
@@ -11,7 +11,10 @@ from organizations.views import ActiveOrganizationMixin
 
 from . import models
 from . import forms
+from . import importer
 from .activity import log_changes, log_created, snapshot
+
+IMPORT_SESSION_KEY = "task_import"
 
 
 class OrgScopedTaskMixin(LoginRequiredMixin):
@@ -174,3 +177,142 @@ class AddCommentView(LoginRequiredMixin, generic.View):
             comment.author = request.user
             comment.save()
         return redirect(task.get_absolute_url())
+
+
+class TaskImportView(ActiveOrganizationMixin, generic.View):
+    """Step 1: upload a CSV/XLSX file for a chosen active-org project. Members+
+    only (via ``required_role``)."""
+
+    required_role = Membership.Role.MEMBER
+    template_name = "tasks/import_start.html"
+    http_method_names = ["get", "post"]
+
+    def _projects(self):
+        return self.active_organization.projects.all()
+
+    def get(self, request):
+        return render(request, self.template_name, {"projects": self._projects()})
+
+    def post(self, request):
+        project = get_object_or_404(
+            self._projects(), pk=request.POST.get("project")
+        )
+        upload = request.FILES.get("file")
+        if not upload:
+            return render(
+                request,
+                self.template_name,
+                {"projects": self._projects(), "error": "Choose a file to upload."},
+            )
+        try:
+            headers, rows = importer.parse_upload(upload, upload.name)
+        except importer.ImportError as exc:
+            return render(
+                request,
+                self.template_name,
+                {"projects": self._projects(), "error": str(exc)},
+            )
+        request.session[IMPORT_SESSION_KEY] = {
+            "project_id": project.pk,
+            "headers": headers,
+            "rows": rows,
+        }
+        return redirect("tasks:import_map")
+
+
+class TaskImportMapView(ActiveOrganizationMixin, generic.View):
+    """Step 2: map columns, preview validation, then commit. State lives in the
+    session from step 1; the project is re-scoped to the active org each time."""
+
+    required_role = Membership.Role.MEMBER
+    template_name = "tasks/import_map.html"
+    http_method_names = ["get", "post"]
+
+    def _session_project(self, request):
+        data = request.session.get(IMPORT_SESSION_KEY)
+        if not data:
+            return None, None
+        project = get_object_or_404(
+            self.active_organization.projects.all(), pk=data["project_id"]
+        )
+        return data, project
+
+    def get(self, request):
+        data, project = self._session_project(request)
+        if not data:
+            return redirect("tasks:import")
+        mapping = importer.auto_mapping(project, data["headers"])
+        return render(
+            request, self.template_name, self._context(project, data, mapping, None)
+        )
+
+    def post(self, request):
+        data, project = self._session_project(request)
+        if not data:
+            return redirect("tasks:import")
+        mapping = self._mapping_from_post(request, project)
+
+        if request.POST.get("action") == "commit":
+            result = importer.commit(
+                project, data["rows"], mapping, request.user
+            )
+            del request.session[IMPORT_SESSION_KEY]
+            return render(
+                request,
+                "tasks/import_result.html",
+                {"project": project, "result": result},
+            )
+
+        rows_preview = importer.preview(project, data["rows"], mapping)
+        return render(
+            request,
+            self.template_name,
+            self._context(project, data, mapping, rows_preview),
+        )
+
+    def _mapping_from_post(self, request, project):
+        mapping = {}
+        for name, _label, _required in importer.target_fields(project):
+            source = request.POST.get(f"map_{name}", "")
+            if source:
+                mapping[name] = source
+        return mapping
+
+    def _context(self, project, data, mapping, preview):
+        target_fields = importer.target_fields(project)
+        fields = [
+            {
+                "name": name,
+                "label": label,
+                "required": required,
+                "source": mapping.get(name, ""),
+            }
+            for name, label, required in target_fields
+        ]
+        # Reshape the preview into per-field cells aligned with ``fields`` so the
+        # template can render a simple nested loop (no dynamic dict lookups).
+        preview_rows = None
+        valid_count = None
+        if preview is not None:
+            preview_rows = [
+                {
+                    "row_number": row["row_number"],
+                    "valid": row["valid"],
+                    "cells": [
+                        {
+                            "value": row["values"].get(name, ""),
+                            "error": row["errors"].get(name, ""),
+                        }
+                        for name, _label, _required in target_fields
+                    ],
+                }
+                for row in preview
+            ]
+            valid_count = sum(1 for row in preview if row["valid"])
+        return {
+            "project": project,
+            "headers": data["headers"],
+            "fields": fields,
+            "preview_rows": preview_rows,
+            "valid_count": valid_count,
+        }

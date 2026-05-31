@@ -20,7 +20,9 @@ have a **`ProjectType`** that declares a custom-field schema and an ordered
 `custom_fields` JSONField and a workflow `status` (with `is_done` auto-synced
 from terminal statuses). Tasks support **comments** and an append-only
 **activity log** (created/updated/status-change/assignment), and `owner` is an
-editable **assignee**. Phase 6 (data import) is next.
+editable **assignee**. A **CSV/XLSX importer** maps spreadsheet columns to a
+project's fields, previews validation, and commits valid rows. Phase 7 (API
+hardening) is next.
 
 The codebase is intentionally small. Prefer keeping it that way: add behaviour
 where it belongs rather than introducing new layers or abstractions. Tenancy
@@ -32,6 +34,7 @@ focused on the work item itself.
 - Python 3.12+
 - Django 6.0.5
 - Django REST Framework 3.17+
+- openpyxl (XLSX parsing for the importer)
 - SQLite (development default; swap via `DATABASES` for production)
 - pytest + pytest-django for tests
 
@@ -66,7 +69,8 @@ TaskBoard/
 ├── tasks/                    # the work-item app (membership-scoped)
 │   ├── models.py             # Task, Comment, Activity
 │   ├── activity.py           # log_created / log_changes / snapshot (activity log)
-│   ├── views.py              # CBVs: OrgScopedTaskMixin, TaskWriteRoleMixin, AddCommentView
+│   ├── importer.py           # pure CSV/XLSX parse → map → validate → commit
+│   ├── views.py              # CBVs: OrgScopedTaskMixin, TaskWriteRoleMixin, AddCommentView, import views
 │   ├── api.py                # DRF Task + Project viewsets (org-scoped)
 │   ├── serializers.py        # DRF serializers
 │   ├── forms.py              # TaskForm (project/assignee/custom/status-aware), CommentForm
@@ -191,6 +195,21 @@ surfaced on the task detail page; `Activity` admin is read-only (append-only).
 Posting a comment (`AddCommentView`, route `tasks:Task_comment`) is org-scoped
 and requires `member`+ (viewers can read but not comment).
 
+### Data import (CSV/XLSX)
+`tasks/importer.py` is a **pure, side-effect-free** pipeline (no DB writes until
+`commit`): `parse_upload` (CSV via stdlib `csv`, XLSX via `openpyxl`; raises
+`importer.ImportError` on bad/oversized files — `MAX_ROWS` cap), `target_fields`
+(core + `status` + `custom_<name>` per the project type), `auto_mapping`,
+`map_row`, `clean_row` (coerces spreadsheet strings to field types, then reuses
+`validate_custom_fields` / `validate_status` — the same validators as the form
+and API), `preview`, and `commit` (creates only valid rows, logs activity,
+returns `{created, skipped:[{row_number, errors}]}` — **partial import, invalid
+rows reported not dropped**). The web flow is two views gated `member`+
+(`TaskImportView` → `TaskImportMapView`, routes `tasks:import` / `import_map`)
+carrying parsed rows in `request.session["task_import"]` across upload → map →
+preview → commit. Add new field types/validators in the shared validators, not
+the importer.
+
 ### Web layer
 Plain Django generic class-based views (`ListView`, `CreateView`, `DetailView`,
 `UpdateView`, `DeleteView`) in `tasks/views.py`. Create/Update use
@@ -259,7 +278,7 @@ Collaboration).
 ### URL names
 App namespace is `tasks`. Web routes: `tasks:Task_list`, `tasks:Task_create`,
 `tasks:Task_detail`, `tasks:Task_update`, `tasks:Task_delete`,
-`tasks:Task_comment`. API routes
+`tasks:Task_comment`, `tasks:import`, `tasks:import_map`. API routes
 (router): `tasks:task-list`/`tasks:task-detail`,
 `tasks:project-list`/`tasks:project-detail`. Project web routes live in the
 `organizations` namespace: `organizations:Project_list` / `_detail` / `_create`
@@ -291,7 +310,7 @@ configure static file serving, and run `manage.py check --deploy`.
   new tests instead of building objects inline. The shared validators have
   focused tests in `tests/organizations/test_custom_fields.py` and
   `tests/organizations/test_workflow.py`; activity recording in
-  `tests/tasks/test_activity.py`. Tests live under
+  `tests/tasks/test_activity.py`; the importer in `tests/tasks/test_import.py`. Tests live under
   `tests/<app>/` (e.g. `tests/tasks/`, `tests/organizations/`). Note
   `create_tasks_Task` auto-creates a project (and, for a real owner, an org
   membership) when none is passed, so the task is visible under org-scoping;

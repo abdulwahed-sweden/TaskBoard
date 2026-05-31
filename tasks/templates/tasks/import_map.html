@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Map columns — TaskBoard{% endblock %}
+{% block content %}
+
+<h1 class="page-title">Map columns → {{ project.name }}</h1>
+<p class="muted">Match each task field to a column from your file, then preview.
+Nothing is saved until you import.</p>
+
+<form method="post">
+  {% csrf_token %}
+
+  <table class="detail">
+    {% for field in fields %}
+      <tr>
+        <td>{{ field.label }}{% if field.required %} *{% endif %}</td>
+        <td>
+          <select name="map_{{ field.name }}">
+            <option value="">— ignore —</option>
+            {% for header in headers %}
+              <option value="{{ header }}" {% if header == field.source %}selected{% endif %}>{{ header }}</option>
+            {% endfor %}
+          </select>
+        </td>
+      </tr>
+    {% endfor %}
+  </table>
+
+  <div class="btn-row">
+    <button type="submit" name="action" value="preview" class="btn btn-secondary">Preview</button>
+    {% if preview_rows is not None %}
+      <button type="submit" name="action" value="commit" class="btn btn-primary">
+        Import {{ valid_count }} valid row{{ valid_count|pluralize }}
+      </button>
+    {% endif %}
+    <a class="btn btn-secondary" href="{% url 'tasks:import' %}">Start over</a>
+  </div>
+
+  {% if preview_rows is not None %}
+    <h2>Preview</h2>
+    <p class="muted">{{ valid_count }} of {{ preview_rows|length }} row{{ preview_rows|length|pluralize }} valid.</p>
+    <table class="detail">
+      <tr>
+        <td>#</td>
+        {% for field in fields %}<td>{{ field.label }}</td>{% endfor %}
+      </tr>
+      {% for row in preview_rows %}
+        <tr>
+          <td>{{ row.row_number }}{% if not row.valid %} ⚠{% endif %}</td>
+          {% for cell in row.cells %}
+            <td>
+              {{ cell.value }}
+              {% if cell.error %}<div class="helptext" style="color:var(--danger-dark)">{{ cell.error }}</div>{% endif %}
+            </td>
+          {% endfor %}
+        </tr>
+      {% endfor %}
+    </table>
+  {% endif %}
+</form>
+
+{% endblock %}
