@@ -12,6 +12,7 @@ from organizations.views import ActiveOrganizationMixin
 from . import models
 from . import forms
 from . import importer
+from . import notifications
 from .activity import log_changes, log_created, snapshot
 
 IMPORT_SESSION_KEY = "task_import"
@@ -105,6 +106,7 @@ class TaskCreateView(ActiveOrganizationMixin, generic.CreateView):
             form.instance.owner = self.request.user
         response = super().form_valid(form)
         log_created(self.object, self.request.user)
+        notifications.on_task_created(self.object, self.request.user)
         return response
 
 
@@ -145,6 +147,7 @@ class TaskUpdateView(TaskWriteRoleMixin, generic.UpdateView):
     def form_valid(self, form):
         response = super().form_valid(form)
         log_changes(self.object, self.request.user, self._previous)
+        notifications.on_task_updated(self.object, self.request.user, self._previous)
         return response
 
 
@@ -176,6 +179,7 @@ class AddCommentView(LoginRequiredMixin, generic.View):
             comment.task = task
             comment.author = request.user
             comment.save()
+            notifications.notify_comment(task, request.user)
         return redirect(task.get_absolute_url())
 
 
@@ -316,3 +320,17 @@ class TaskImportMapView(ActiveOrganizationMixin, generic.View):
             "preview_rows": preview_rows,
             "valid_count": valid_count,
         }
+
+
+class NotificationPreferencesView(LoginRequiredMixin, generic.UpdateView):
+    """Edit the current user's email notification preferences."""
+
+    form_class = forms.NotificationPreferenceForm
+    template_name = "tasks/notification_preferences.html"
+    success_url = reverse_lazy("notification_preferences")
+
+    def get_object(self, queryset=None):
+        preference, _ = models.NotificationPreference.objects.get_or_create(
+            user=self.request.user
+        )
+        return preference

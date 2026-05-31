@@ -143,4 +143,21 @@ class Activity(models.Model):
         return self.description
 
 
+class NotificationPreference(models.Model):
+    """Per-user email notification toggles. Created lazily (get_or_create);
+    every event defaults to on."""
+
+    user = models.OneToOneField(
+        "auth.User",
+        on_delete=models.CASCADE,
+        related_name="notification_preference",
+    )
+    notify_on_assignment = models.BooleanField(default=True)
+    notify_on_comment = models.BooleanField(default=True)
+    notify_on_status_change = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"Notification preferences for {self.user}"
+
+
 

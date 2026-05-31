@@ -6,6 +6,7 @@ from organizations.permissions import has_role
 
 from . import models
 from . import serializers
+from . import notifications
 from .activity import log_changes, log_created, snapshot
 
 
@@ -50,11 +51,13 @@ class TaskViewSet(viewsets.ModelViewSet):
             extra["owner"] = self.request.user
         task = serializer.save(**extra)
         log_created(task, self.request.user)
+        notifications.on_task_created(task, self.request.user)
 
     def perform_update(self, serializer):
         previous = snapshot(serializer.instance)
         task = serializer.save()
         log_changes(task, self.request.user, previous)
+        notifications.on_task_updated(task, self.request.user, previous)
 
 
 class ProjectViewSet(viewsets.ModelViewSet):

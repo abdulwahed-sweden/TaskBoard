@@ -47,7 +47,18 @@ class ActivityAdmin(admin.ModelAdmin):
         return False
 
 
+class NotificationPreferenceAdmin(admin.ModelAdmin):
+    list_display = [
+        "user",
+        "notify_on_assignment",
+        "notify_on_comment",
+        "notify_on_status_change",
+    ]
+    search_fields = ["user__username"]
+
+
 admin.site.register(models.Task, TaskAdmin)
 admin.site.register(models.Comment, CommentAdmin)
 admin.site.register(models.Activity, ActivityAdmin)
+admin.site.register(models.NotificationPreference, NotificationPreferenceAdmin)
 
