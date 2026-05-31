@@ -26,8 +26,9 @@ hardened with **token auth, filtering/ordering/pagination, and OpenAPI docs**.
 Assignees get **email notifications** (assignment / comment / status-change),
 gated by per-user preferences. The task list supports **filtering + shared,
 per-project saved views**, and an org **dashboard** shows counts/overdue/recent
-activity. Phase 10 (production readiness: Postgres, Docker, CI) is the last
-roadmap phase.
+activity. It is **production-ready**: Postgres via `DATABASE_URL`, Docker +
+compose, WhiteNoise static serving, env-driven security, and CI. All ten roadmap
+phases have landed.
 
 The codebase is intentionally small. Prefer keeping it that way: add behaviour
 where it belongs rather than introducing new layers or abstractions. Tenancy
@@ -40,14 +41,17 @@ focused on the work item itself.
 - Django 6.0.5
 - Django REST Framework 3.17+ (token auth, django-filter, drf-spectacular)
 - openpyxl (XLSX parsing for the importer)
-- SQLite (development default; swap via `DATABASES` for production)
-- pytest + pytest-django for tests
+- SQLite (dev default); Postgres in prod via `DATABASE_URL` (dj-database-url, psycopg3)
+- gunicorn + WhiteNoise (app server + static serving); Docker + compose
+- pytest + pytest-django for tests; GitHub Actions CI
 
 ## Repository layout
 
 ```
 TaskBoard/
 ├── manage.py
+├── Dockerfile / entrypoint.sh / docker-compose.yml / .dockerignore   # Phase 10
+├── .github/workflows/ci.yml  # CI: pytest + check --deploy
 ├── requirements.txt          # runtime deps
 ├── requirements-dev.txt      # test/dev deps
 ├── pytest.ini                # pytest config (uses test_settings)
@@ -349,9 +353,30 @@ with development fallbacks:
 | `DJANGO_SECRET_KEY`    | insecure dev key     | **Must** be set in production         |
 | `DJANGO_DEBUG`         | `True`               | Set to `False` in production          |
 | `DJANGO_ALLOWED_HOSTS` | empty                | Comma-separated list, e.g. `a.com,b.com` |
+| `DATABASE_URL`         | SQLite               | e.g. `postgres://user:pass@host/db` (dj-database-url) |
+| `DJANGO_CSRF_TRUSTED_ORIGINS` | empty         | Comma-separated, e.g. `https://app.example.com` |
 
-For a real deployment: set the variables above, switch `DATABASES` to Postgres,
-configure static file serving, and run `manage.py check --deploy`.
+Email vars (`DJANGO_EMAIL_*`, `DJANGO_DEFAULT_FROM_EMAIL`) — see Password reset &
+email. When `DEBUG=False`, TLS security settings (SSL redirect, secure cookies,
+HSTS, `SECURE_PROXY_SSL_HEADER`) switch on automatically and can each be
+overridden by env (`DJANGO_SECURE_SSL_REDIRECT`, etc.) for a non-TLS deploy.
+
+## Deployment
+
+The app is deployable as-is (Phase 10):
+- **Database**: set `DATABASE_URL` to a Postgres URL; unset → SQLite (dev). The
+  driver is psycopg3 (`psycopg[binary]`).
+- **Static**: `manage.py collectstatic` → `STATIC_ROOT`, served by **WhiteNoise**
+  (compressed-manifest storage); no separate web server needed for static.
+- **App server**: **gunicorn** (`TaskBoard.wsgi`).
+- **Docker**: `docker compose up --build` runs the app against Postgres 16 — the
+  `web` image's `entrypoint.sh` runs `migrate` + `collectstatic` then gunicorn on
+  `:8000`; the `db` service has a healthcheck and a named volume. `DATABASE_URL`
+  and `DJANGO_*` are set in `docker-compose.yml`.
+- **CI**: `.github/workflows/ci.yml` runs `pytest` (SQLite) + `manage.py check
+  --deploy` on push/PR.
+- Before shipping: `python manage.py check --deploy` (clean with `DEBUG=False` +
+  `DJANGO_ALLOWED_HOSTS` set).
 
 ## Testing notes
 
@@ -368,7 +393,8 @@ configure static file serving, and run `manage.py check --deploy`.
   `tests/tasks/test_activity.py`; the importer in `tests/tasks/test_import.py`;
   API auth/filtering/pagination/docs in `tests/tasks/test_api_hardening.py`;
   notifications in `tests/tasks/test_notifications.py`; dashboard aggregation in
-  `tests/tasks/test_dashboard.py`; saved views in `tests/tasks/test_saved_views.py`.
+  `tests/tasks/test_dashboard.py`; saved views in `tests/tasks/test_saved_views.py`;
+  the `DATABASE_URL` config wiring in `tests/test_settings_config.py`.
   Note API list responses are paginated — read `response.data["results"]`. Use
   `APIClient().credentials(HTTP_AUTHORIZATION="Token <t>")` to test token auth. Tests live under
   `tests/<app>/` (e.g. `tests/tasks/`, `tests/organizations/`). Note

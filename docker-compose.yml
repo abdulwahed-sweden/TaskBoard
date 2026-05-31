@@ -1,0 +1,35 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: taskboard
+      POSTGRES_USER: taskboard
+      POSTGRES_PASSWORD: taskboard
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U taskboard"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://taskboard:taskboard@db:5432/taskboard
+      DJANGO_DEBUG: "False"
+      DJANGO_SECRET_KEY: "compose-dev-secret-change-me"
+      DJANGO_ALLOWED_HOSTS: "localhost,127.0.0.1"
+      # Local Postgres over plain HTTP — don't force HTTPS redirects.
+      DJANGO_SECURE_SSL_REDIRECT: "False"
+      DJANGO_SESSION_COOKIE_SECURE: "False"
+      DJANGO_CSRF_COOKIE_SECURE: "False"
+      DJANGO_SECURE_HSTS_SECONDS: "0"
+    ports:
+      - "8000:8000"
+
+volumes:
+  postgres_data:
