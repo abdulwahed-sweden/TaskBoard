@@ -296,7 +296,8 @@ def tests_api_lists_only_own_org_tasks():
     theirs = test_helpers.create_tasks_Task()  # foreign org
     response = api.get(reverse("tasks:task-list"))
     assert response.status_code == 200
-    ids = {row["id"] for row in response.data}
+    # Responses are paginated now: {count, next, previous, results}.
+    ids = {row["id"] for row in response.data["results"]}
     assert mine.pk in ids
     assert theirs.pk not in ids
 

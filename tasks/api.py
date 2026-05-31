@@ -26,8 +26,16 @@ class TaskViewSet(viewsets.ModelViewSet):
 
     serializer_class = serializers.TaskSerializer
     permission_classes = [IsOrgMemberForWrites]
+    queryset = models.Task.objects.none()  # lets the schema introspect the model
+    # Filters/search/ordering only ever narrow the already org-scoped queryset.
+    filterset_fields = ["project", "is_done", "status"]
+    ordering_fields = ["created", "due_date", "title"]
+    ordering = ["-created"]
+    search_fields = ["title", "notes"]
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return models.Task.objects.none()
         return models.Task.objects.filter(
             project__organization__members=self.request.user
         )
@@ -54,8 +62,15 @@ class ProjectViewSet(viewsets.ModelViewSet):
 
     serializer_class = serializers.ProjectSerializer
     permission_classes = [IsOrgMemberForWrites]
+    queryset = Project.objects.none()  # lets the schema introspect the model
+    filterset_fields = ["organization"]
+    ordering_fields = ["name", "created"]
+    ordering = ["name"]
+    search_fields = ["name"]
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return Project.objects.none()
         return Project.objects.filter(organization__members=self.request.user)
 
     def get_object_organization(self, obj):
