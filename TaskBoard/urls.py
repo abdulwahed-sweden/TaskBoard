@@ -30,6 +30,11 @@ from tasks.views import NotificationPreferencesView
 
 from . import views
 
+# Brand the admin to match the TaskBoard app (see templates/admin/base_site.html).
+admin.site.site_header = 'TaskBoard administration'
+admin.site.site_title = 'TaskBoard admin'
+admin.site.index_title = 'Administration'
+
 urlpatterns = [
     path('', TemplateView.as_view(template_name='index.html'), name='index'),
     path('accounts/signup/', views.SignUpView.as_view(), name='signup'),
