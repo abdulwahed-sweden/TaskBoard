@@ -19,4 +19,6 @@ urlpatterns = (
     path("Task/update/<int:pk>/", views.TaskUpdateView.as_view(), name="Task_update"),
     path("Task/delete/<int:pk>/", views.TaskDeleteView.as_view(), name="Task_delete"),
     path("Task/<int:pk>/comment/", views.AddCommentView.as_view(), name="Task_comment"),
+    path("import/", views.TaskImportView.as_view(), name="import"),
+    path("import/map/", views.TaskImportMapView.as_view(), name="import_map"),
 )

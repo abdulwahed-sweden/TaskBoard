@@ -37,6 +37,7 @@
 {% if can_write %}
 <div class="btn-row">
   <a class="btn btn-primary" href="{% url 'tasks:Task_create' %}">Create a new task</a>
+  <a class="btn btn-secondary" href="{% url 'tasks:import' %}">Import tasks</a>
 </div>
 {% endif %}
 

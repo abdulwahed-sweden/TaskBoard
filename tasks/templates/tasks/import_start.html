@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Import tasks — TaskBoard{% endblock %}
+{% block content %}
+
+<h1 class="page-title">Import tasks</h1>
+<p class="muted">Upload a CSV or XLSX file. You'll map its columns and preview
+the rows before anything is saved.</p>
+
+{% if error %}<ul class="errorlist"><li>{{ error }}</li></ul>{% endif %}
+
+<form method="post" enctype="multipart/form-data" class="stack">
+  {% csrf_token %}
+  <div>
+    <label for="project">Project</label>
+    <select id="project" name="project" required>
+      {% for project in projects %}
+        <option value="{{ project.pk }}">{{ project.name }}</option>
+      {% empty %}
+        <option value="">No projects available</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div>
+    <label for="file">File (.csv or .xlsx)</label>
+    <input id="file" type="file" name="file" accept=".csv,.xlsx" required>
+  </div>
+  <div class="btn-row">
+    <button type="submit" class="btn btn-primary">Upload</button>
+    <a class="btn btn-secondary" href="{% url 'tasks:Task_list' %}">Cancel</a>
+  </div>
+</form>
+
+{% endblock %}
