@@ -33,6 +33,22 @@ def tests_Task_create_view(client):
     assert response.status_code == 302
 
 
+def tests_Task_create_view_without_owner(client):
+    from tasks.models import Task
+
+    url = reverse("tasks:Task_create")
+    data = {
+      'title': 'ownerless',
+      'notes': 'some\ntext',
+      'is_done': True,
+      'due_date': '2022-01-01',
+    }
+    response = client.post(url, data)
+    assert response.status_code == 302
+    task = Task.objects.get(title='ownerless')
+    assert task.owner is None
+
+
 def tests_Task_detail_view(client):
     instance = test_helpers.create_tasks_Task()
     url = reverse("tasks:Task_detail", args=[instance.pk, ])
