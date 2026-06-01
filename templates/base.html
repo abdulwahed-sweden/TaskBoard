@@ -27,6 +27,15 @@
       #middle .helptext { display: block; font-size: .8rem; color: #6c757d; margin-top: .25rem; }
       #middle ul.errorlist { list-style: none; padding: .5rem .75rem; margin: .25rem 0;
         color: #842029; background: #f8d7da; border: 1px solid #f5c2c7; border-radius: .375rem; font-size: .85rem; }
+      #middle input[type=checkbox], #middle input[type=radio] { margin-right: .4rem; vertical-align: middle; }
+      #middle .card { border: 1px solid #e5e7eb; }
+
+      /* Sidebar nav: consistent icon+label rows, hover, and active accent. */
+      #aside-main .nav-link { display: flex; align-items: center; gap: .6rem;
+        padding: .5rem .75rem; color: #475569; border-radius: 8px; }
+      #aside-main .nav-link:hover { background: #f1f5f9; text-decoration: none; }
+      #aside-main .nav-item.active > .nav-link { color: #2563eb; font-weight: 600; background: #eef2ff; }
+      #aside-main .nav-link i { width: 1.1rem; text-align: center; }
     </style>
 
     {% block extra_css %}{% endblock %}
@@ -128,23 +137,25 @@
 
 
         <!-- main content -->
-        <main id="middle" class="flex-fill mx-auto w-100">
+        <main id="middle" class="flex-fill">
+          <div class="container-fluid p-3 p-lg-4">
 
-          {% block page_header %}
-          <header class="mb-3">
-            <h1 class="h4">{% block page_title %}{% endblock %}</h1>
-            {% block breadcrumb %}{% endblock %}
-          </header>
-          {% endblock %}
+            {% block page_header %}
+            <header class="mb-4 pb-2 border-bottom">
+              <h1 class="h4 mb-0">{% block page_title %}{% endblock %}</h1>
+              {% block breadcrumb %}{% endblock %}
+            </header>
+            {% endblock %}
 
-          {% if messages %}
-            {% for message in messages %}
-              <div class="alert alert-{{ message.tags|default:'info' }}">{{ message }}</div>
-            {% endfor %}
-          {% endif %}
+            {% if messages %}
+              {% for message in messages %}
+                <div class="alert alert-{{ message.tags|default:'info' }}">{{ message }}</div>
+              {% endfor %}
+            {% endif %}
 
-          {% block content %}{% endblock %}
+            {% block content %}{% endblock %}
 
+          </div>
         </main>
         <!-- /main content -->
 
