@@ -105,19 +105,19 @@
               <ul class="nav flex-column">
                 {% if user.is_authenticated %}
                 <li class="nav-item {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
-                  <a class="nav-link" href="{% url 'tasks:dashboard' %}"><i class="fi fi-home"></i><span>Dashboard</span></a>
+                  <a class="nav-link" href="{% url 'tasks:dashboard' %}"><i class="fi fi-dashboard"></i><span>Dashboard</span></a>
                 </li>
                 <li class="nav-item {% if request.resolver_match.namespace == 'organizations' %}active{% endif %}">
-                  <a class="nav-link" href="{% url 'organizations:Project_list' %}"><i class="fi fi-folder"></i><span>Projects</span></a>
+                  <a class="nav-link" href="{% url 'organizations:Project_list' %}"><i class="fi fi-folder-full"></i><span>Projects</span></a>
                 </li>
                 <li class="nav-item {% if request.resolver_match.url_name == 'Task_list' %}active{% endif %}">
-                  <a class="nav-link" href="{% url 'tasks:Task_list' %}"><i class="fi fi-list"></i><span>Tasks</span></a>
+                  <a class="nav-link" href="{% url 'tasks:Task_list' %}"><i class="fi fi-task-list"></i><span>Tasks</span></a>
                 </li>
                 <li class="nav-item {% if 'import' in request.resolver_match.url_name %}active{% endif %}">
-                  <a class="nav-link" href="{% url 'tasks:import' %}"><i class="fi fi-upload"></i><span>Import</span></a>
+                  <a class="nav-link" href="{% url 'tasks:import' %}"><i class="fi fi-cloud-upload"></i><span>Import</span></a>
                 </li>
                 {% else %}
-                <li class="nav-item"><a class="nav-link" href="{% url 'login' %}"><i class="fi fi-user"></i><span>Log in</span></a></li>
+                <li class="nav-item"><a class="nav-link" href="{% url 'login' %}"><i class="fi fi-user-male"></i><span>Log in</span></a></li>
                 {% endif %}
               </ul>
             </nav>
