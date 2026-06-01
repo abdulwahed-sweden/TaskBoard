@@ -15,7 +15,7 @@
         {% endfor %}
       </select>
     </div>
-    <div class="col-sm-3">
+    <div class="col-sm-2">
       <label for="status-filter" class="form-label">Status</label>
       <select id="status-filter" name="status" class="form-select form-select-sm">
         <option value="">Any status</option>
@@ -36,7 +36,7 @@
       <label for="q-filter" class="form-label">Search</label>
       <input id="q-filter" type="text" name="q" value="{{ filters.q|default:'' }}" class="form-control form-control-sm" placeholder="title or notes">
     </div>
-    <div class="col-sm-1">
+    <div class="col-sm-2">
       <button type="submit" class="btn btn-sm btn-secondary w-100">Filter</button>
     </div>
   </div>
