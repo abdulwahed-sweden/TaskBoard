@@ -11,8 +11,8 @@
     <link rel="stylesheet" href="{% static 'smarty/css/vendor_bundle.min.css' %}">
 
     <style>
-      /* Give Django's {{ form.as_div }} fields a Bootstrap-like look without
-         touching each form/widget. */
+      /* Give Django's {{ form.as_div }} fields a Bootstrap-like look in the
+         (white) content area only — the sidebar/footer keep the theme's styling. */
       #middle form > div { margin-bottom: 1rem; }
       #middle label { display: inline-block; margin-bottom: .25rem; font-weight: 500; }
       #middle input:not([type=checkbox]):not([type=radio]):not([type=submit]):not([type=button]),
@@ -24,18 +24,10 @@
       #middle input:focus, #middle select:focus, #middle textarea:focus {
         outline: 0; border-color: #86b7fe; box-shadow: 0 0 0 .2rem rgba(13,110,253,.15);
       }
+      #middle input[type=checkbox], #middle input[type=radio] { margin-right: .4rem; vertical-align: middle; }
       #middle .helptext { display: block; font-size: .8rem; color: #6c757d; margin-top: .25rem; }
       #middle ul.errorlist { list-style: none; padding: .5rem .75rem; margin: .25rem 0;
         color: #842029; background: #f8d7da; border: 1px solid #f5c2c7; border-radius: .375rem; font-size: .85rem; }
-      #middle input[type=checkbox], #middle input[type=radio] { margin-right: .4rem; vertical-align: middle; }
-      #middle .card { border: 1px solid #e5e7eb; }
-
-      /* Sidebar nav: consistent icon+label rows, hover, and active accent. */
-      #aside-main .nav-link { display: flex; align-items: center; gap: .6rem;
-        padding: .5rem .75rem; color: #475569; border-radius: 8px; }
-      #aside-main .nav-link:hover { background: #f1f5f9; text-decoration: none; }
-      #aside-main .nav-item.active > .nav-link { color: #2563eb; font-weight: 600; background: #eef2ff; }
-      #aside-main .nav-link i { width: 1.1rem; text-align: center; }
     </style>
 
     {% block extra_css %}{% endblock %}
@@ -46,19 +38,21 @@
     <div id="wrapper" class="d-flex align-items-stretch flex-column">
 
       <!-- header -->
-      <header id="header" class="d-flex align-items-center shadow-xs">
+      <header id="header" class="shadow-xs">
         <div class="container-fluid position-relative">
           <nav class="navbar navbar-expand-lg navbar-light justify-content-between">
 
             <div class="align-items-start">
               <a href="#aside-main" class="btn-sidebar-toggle h-100 d-inline-block d-lg-none justify-content-center align-items-center p-2">
-                <span>
-                  <svg width="25" height="25" viewBox="0 0 20 20">
-                    <path d="M 19.9876 1.998 L -0.0108 1.998 L -0.0108 -0.0019 L 19.9876 -0.0019 L 19.9876 1.998 Z"></path>
-                    <path d="M 19.9876 7.9979 L -0.0108 7.9979 L -0.0108 5.9979 L 19.9876 5.9979 L 19.9876 7.9979 Z"></path>
-                    <path d="M 19.9876 13.9977 L -0.0108 13.9977 L -0.0108 11.9978 L 19.9876 11.9978 L 19.9876 13.9977 Z"></path>
-                    <path d="M 19.9876 19.9976 L -0.0108 19.9976 L -0.0108 17.9976 L 19.9876 17.9976 L 19.9876 19.9976 Z"></path>
-                  </svg>
+                <span class="group-icon">
+                  <i>
+                    <svg width="25" viewBox="0 0 20 20">
+                      <path d="M 19.9876 1.998 L -0.0108 1.998 L -0.0108 -0.0019 L 19.9876 -0.0019 L 19.9876 1.998 Z"></path>
+                      <path d="M 19.9876 7.9979 L -0.0108 7.9979 L -0.0108 5.9979 L 19.9876 5.9979 L 19.9876 7.9979 Z"></path>
+                      <path d="M 19.9876 13.9977 L -0.0108 13.9977 L -0.0108 11.9978 L 19.9876 11.9978 L 19.9876 13.9977 Z"></path>
+                      <path d="M 19.9876 19.9976 L -0.0108 19.9976 L -0.0108 17.9976 L 19.9876 17.9976 L 19.9876 19.9976 Z"></path>
+                    </svg>
+                  </i>
                 </span>
               </a>
             </div>
@@ -100,17 +94,17 @@
 
       <div id="wrapper_content" class="d-flex flex-fill">
 
-        <!-- sidebar -->
-        <aside id="aside-main" class="aside-start aside-hide-xs bg-white shadow-sm d-flex flex-column px-2 h-auto">
+        <!-- sidebar (dark, theme aside-primary) -->
+        <aside id="aside-main" class="aside-start aside-primary aside-hide-xs d-flex flex-column h-auto">
 
-          <div class="py-2 px-3 mb-3 mt-1">
-            <a href="{% url 'index' %}" class="text-decoration-none">
-              <span class="fs-5 fw-bold text-primary">TaskBoard</span>
+          <div class="d-none d-sm-block">
+            <a class="navbar-brand d-block p-3" href="{% url 'index' %}">
+              <span class="fs-5 fw-bold text-white">TaskBoard</span>
             </a>
           </div>
 
           <div class="aside-wrapper scrollable-vertical scrollable-styled-light align-self-baseline h-100 w-100">
-            <nav class="nav-deep nav-deep-sm nav-deep-light">
+            <nav class="nav-deep nav-deep-dark nav-deep-hover pb-5">
               <ul class="nav flex-column">
                 {% if user.is_authenticated %}
                 <li class="nav-item {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
@@ -162,10 +156,8 @@
       </div>
 
 
-      <footer id="footer" class="bg-white shadow">
-        <div class="p-3">
-          <span class="small fw-medium">&copy; TaskBoard</span>
-        </div>
+      <footer id="footer" class="aside-primary text-white">
+        <div class="p-3 fs--14">&copy; TaskBoard</div>
       </footer>
 
     </div>
