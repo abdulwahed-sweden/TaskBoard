@@ -1,62 +1,74 @@
 {% extends "base.html" %}
 {% block title %}{{ object }} — TaskBoard{% endblock %}
+{% block page_title %}{{ object }}{% endblock %}
 {% block content %}
 
-<h1 class="page-title">{{ object }}</h1>
-
-<table class="detail">
-  <tr><td>Project</td><td><a href="{{ object.project.get_absolute_url }}">{{ object.project.name }}</a></td></tr>
-  <tr><td>Assignee</td><td>{{ object.owner|default:"Unassigned" }}</td></tr>
-  <tr><td>Title</td><td>{{ object.title }}</td></tr>
-  <tr><td>Notes</td><td>{{ object.notes|linebreaksbr }}</td></tr>
-  {% if object.status %}<tr><td>Status</td><td>{{ object.status_label }}</td></tr>{% endif %}
-  <tr><td>Done</td><td>{{ object.is_done|yesno:"Yes,No" }}</td></tr>
-  <tr><td>Due date</td><td>{{ object.due_date|default:"—" }}</td></tr>
-  <tr><td>Created</td><td>{{ object.created }}</td></tr>
-  <tr><td>Last updated</td><td>{{ object.last_updated }}</td></tr>
-  {% for key, value in object.custom_fields.items %}
-    <tr><td>{{ key }}</td><td>{{ value }}</td></tr>
-  {% endfor %}
-</table>
-
-<div class="btn-row">
-  <a class="btn btn-primary" href="{{ object.get_update_url }}">Edit</a>
-  <a class="btn btn-danger" href="{{ object.get_delete_url }}">Delete</a>
-  <a class="btn btn-secondary" href="{% url 'tasks:Task_list' %}">Back to list</a>
+<div class="card mb-3">
+  <table class="table mb-0">
+    <tbody>
+      <tr><th class="text-muted" style="width:160px">Project</th><td><a href="{{ object.project.get_absolute_url }}">{{ object.project.name }}</a></td></tr>
+      <tr><th class="text-muted">Assignee</th><td>{{ object.owner|default:"Unassigned" }}</td></tr>
+      <tr><th class="text-muted">Title</th><td>{{ object.title }}</td></tr>
+      <tr><th class="text-muted">Notes</th><td>{{ object.notes|linebreaksbr }}</td></tr>
+      {% if object.status %}<tr><th class="text-muted">Status</th><td><span class="badge bg-primary">{{ object.status_label }}</span></td></tr>{% endif %}
+      <tr><th class="text-muted">Done</th><td>{{ object.is_done|yesno:"Yes,No" }}</td></tr>
+      <tr><th class="text-muted">Due date</th><td>{{ object.due_date|default:"—" }}</td></tr>
+      <tr><th class="text-muted">Created</th><td>{{ object.created }}</td></tr>
+      <tr><th class="text-muted">Last updated</th><td>{{ object.last_updated }}</td></tr>
+      {% for key, value in object.custom_fields.items %}
+        <tr><th class="text-muted">{{ key }}</th><td>{{ value }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
 </div>
 
-<h2>Comments</h2>
-<ul class="item-list">
-  {% for comment in comments %}
-    <li class="item" style="display:block">
-      <div class="muted">{{ comment.author|default:"Someone" }} · {{ comment.created }}</div>
-      <div>{{ comment.body|linebreaksbr }}</div>
-    </li>
-  {% empty %}
-    <li class="empty">No comments yet.</li>
-  {% endfor %}
-</ul>
+<div class="d-flex gap-2 mb-4">
+  <a class="btn btn-primary" href="{{ object.get_update_url }}">Edit</a>
+  <a class="btn btn-danger" href="{{ object.get_delete_url }}">Delete</a>
+  <a class="btn btn-outline-secondary" href="{% url 'tasks:Task_list' %}">Back to list</a>
+</div>
 
-{% if can_comment %}
-<form method="post" action="{% url 'tasks:Task_comment' object.pk %}" class="stack">
-  {% csrf_token %}
-  {{ comment_form.as_div }}
-  <div class="btn-row">
-    <button type="submit" class="btn btn-primary">Add comment</button>
+<div class="row g-3">
+  <div class="col-lg-7">
+    <div class="card">
+      <div class="card-header fw-medium">Comments</div>
+      <ul class="list-group list-group-flush">
+        {% for comment in comments %}
+          <li class="list-group-item">
+            <div class="text-muted small">{{ comment.author|default:"Someone" }} · {{ comment.created }}</div>
+            <div>{{ comment.body|linebreaksbr }}</div>
+          </li>
+        {% empty %}
+          <li class="list-group-item text-muted">No comments yet.</li>
+        {% endfor %}
+      </ul>
+      {% if can_comment %}
+      <div class="card-body border-top">
+        <form method="post" action="{% url 'tasks:Task_comment' object.pk %}">
+          {% csrf_token %}
+          <div class="mb-2">{{ comment_form.body }}</div>
+          {{ comment_form.body.errors }}
+          <button type="submit" class="btn btn-sm btn-primary">Add comment</button>
+        </form>
+      </div>
+      {% endif %}
+    </div>
   </div>
-</form>
-{% endif %}
-
-<h2>Activity</h2>
-<ul class="item-list">
-  {% for activity in activities %}
-    <li class="item" style="display:block">
-      <div>{{ activity.description }}</div>
-      <div class="muted">{{ activity.created }}</div>
-    </li>
-  {% empty %}
-    <li class="empty">No activity yet.</li>
-  {% endfor %}
-</ul>
+  <div class="col-lg-5">
+    <div class="card">
+      <div class="card-header fw-medium">Activity</div>
+      <ul class="list-group list-group-flush">
+        {% for activity in activities %}
+          <li class="list-group-item">
+            <div>{{ activity.description }}</div>
+            <div class="text-muted small">{{ activity.created }}</div>
+          </li>
+        {% empty %}
+          <li class="list-group-item text-muted">No activity yet.</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
 
 {% endblock %}

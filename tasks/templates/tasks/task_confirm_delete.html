@@ -1,16 +1,17 @@
 {% extends "base.html" %}
 {% block title %}Delete task — TaskBoard{% endblock %}
+{% block page_title %}Delete task{% endblock %}
 {% block content %}
 
-<h1 class="page-title">Delete task</h1>
-<p>Are you sure you want to delete <strong>{{ object }}</strong>? This can't be undone.</p>
-
-<form method="post">
-  {% csrf_token %}
-  <div class="btn-row">
-    <input class="btn btn-danger" value="Delete" type="submit">
-    <a class="btn btn-secondary" href="{{ object.get_absolute_url }}">Cancel</a>
-  </div>
-</form>
+<div class="card card-body" style="max-width:560px">
+  <p>Are you sure you want to delete <strong>{{ object }}</strong>? This can't be undone.</p>
+  <form method="post">
+    {% csrf_token %}
+    <div class="d-flex gap-2">
+      <input class="btn btn-danger" value="Delete" type="submit">
+      <a class="btn btn-outline-secondary" href="{{ object.get_absolute_url }}">Cancel</a>
+    </div>
+  </form>
+</div>
 
 {% endblock %}

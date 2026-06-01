@@ -1,16 +1,17 @@
 {% extends "base.html" %}
 {% block title %}New project — TaskBoard{% endblock %}
+{% block page_title %}New project in {{ active_organization }}{% endblock %}
 {% block content %}
 
-<h1 class="page-title">New project in {{ active_organization }}</h1>
-
-<form method="post">
-  {% csrf_token %}
-  {{ form.as_div }}
-  <div class="btn-row">
-    <input type="submit" value="Save" class="btn btn-primary">
-    <a class="btn btn-secondary" href="{% url 'organizations:Project_list' %}">Cancel</a>
-  </div>
-</form>
+<div class="card card-body" style="max-width:680px">
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_div }}
+    <div class="d-flex gap-2 mt-2">
+      <input type="submit" value="Save" class="btn btn-primary">
+      <a class="btn btn-outline-secondary" href="{% url 'organizations:Project_list' %}">Cancel</a>
+    </div>
+  </form>
+</div>
 
 {% endblock %}
