@@ -1,33 +1,34 @@
 {% extends "base.html" %}
 {% block title %}Import tasks — TaskBoard{% endblock %}
+{% block page_title %}Import tasks{% endblock %}
 {% block content %}
 
-<h1 class="page-title">Import tasks</h1>
-<p class="muted">Upload a CSV or XLSX file. You'll map its columns and preview
-the rows before anything is saved.</p>
+<div class="card card-body" style="max-width:680px">
+  <p class="text-muted">Upload a CSV or XLSX file. You'll map its columns and preview the rows before anything is saved.</p>
 
-{% if error %}<ul class="errorlist"><li>{{ error }}</li></ul>{% endif %}
+  {% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
 
-<form method="post" enctype="multipart/form-data" class="stack">
-  {% csrf_token %}
-  <div>
-    <label for="project">Project</label>
-    <select id="project" name="project" required>
-      {% for project in projects %}
-        <option value="{{ project.pk }}">{{ project.name }}</option>
-      {% empty %}
-        <option value="">No projects available</option>
-      {% endfor %}
-    </select>
-  </div>
-  <div>
-    <label for="file">File (.csv or .xlsx)</label>
-    <input id="file" type="file" name="file" accept=".csv,.xlsx" required>
-  </div>
-  <div class="btn-row">
-    <button type="submit" class="btn btn-primary">Upload</button>
-    <a class="btn btn-secondary" href="{% url 'tasks:Task_list' %}">Cancel</a>
-  </div>
-</form>
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <div class="mb-3">
+      <label for="project" class="form-label">Project</label>
+      <select id="project" name="project" class="form-select" required>
+        {% for project in projects %}
+          <option value="{{ project.pk }}">{{ project.name }}</option>
+        {% empty %}
+          <option value="">No projects available</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="mb-3">
+      <label for="file" class="form-label">File (.csv or .xlsx)</label>
+      <input id="file" type="file" name="file" accept=".csv,.xlsx" class="form-control" required>
+    </div>
+    <div class="d-flex gap-2">
+      <button type="submit" class="btn btn-primary">Upload</button>
+      <a class="btn btn-outline-secondary" href="{% url 'tasks:Task_list' %}">Cancel</a>
+    </div>
+  </form>
+</div>
 
 {% endblock %}

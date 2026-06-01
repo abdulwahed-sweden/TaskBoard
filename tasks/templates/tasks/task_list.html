@@ -1,94 +1,96 @@
 {% extends "base.html" %}
 {% block title %}Tasks — TaskBoard{% endblock %}
+{% block page_title %}Tasks in {{ active_organization }}{% endblock %}
 {% block content %}
 
-<h1 class="page-title">Tasks in {{ active_organization }}</h1>
-
 {% if projects %}
-<form method="get" class="stack" style="margin-bottom:16px">
-  <div>
-    <label for="project-filter">Project</label>
-    <select id="project-filter" name="project">
-      <option value="">All projects</option>
-      {% for project in projects %}
-        <option value="{{ project.pk }}"
-          {% if selected_project == project.pk|stringformat:"s" %}selected{% endif %}>
-          {{ project.name }}
-        </option>
-      {% endfor %}
-    </select>
-  </div>
-  <div>
-    <label for="status-filter">Status</label>
-    <select id="status-filter" name="status">
-      <option value="">Any status</option>
-      {% for status in status_options %}
-        <option value="{{ status }}" {% if filters.status == status %}selected{% endif %}>{{ status }}</option>
-      {% endfor %}
-    </select>
-  </div>
-  <div>
-    <label for="done-filter">Done</label>
-    <select id="done-filter" name="is_done">
-      <option value="">Any</option>
-      <option value="true" {% if filters.is_done == "true" %}selected{% endif %}>Done</option>
-      <option value="false" {% if filters.is_done == "false" %}selected{% endif %}>Open</option>
-    </select>
-  </div>
-  <div>
-    <label for="q-filter">Search</label>
-    <input id="q-filter" type="text" name="q" value="{{ filters.q|default:'' }}" placeholder="title or notes">
-  </div>
-  <div class="btn-row">
-    <button type="submit" class="btn btn-secondary btn-sm">Filter</button>
+<form method="get" class="card card-body mb-3">
+  <div class="row g-2 align-items-end">
+    <div class="col-sm-3">
+      <label for="project-filter" class="form-label">Project</label>
+      <select id="project-filter" name="project" class="form-select form-select-sm">
+        <option value="">All projects</option>
+        {% for project in projects %}
+          <option value="{{ project.pk }}" {% if selected_project == project.pk|stringformat:"s" %}selected{% endif %}>{{ project.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-sm-3">
+      <label for="status-filter" class="form-label">Status</label>
+      <select id="status-filter" name="status" class="form-select form-select-sm">
+        <option value="">Any status</option>
+        {% for status in status_options %}
+          <option value="{{ status }}" {% if filters.status == status %}selected{% endif %}>{{ status }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-sm-2">
+      <label for="done-filter" class="form-label">Done</label>
+      <select id="done-filter" name="is_done" class="form-select form-select-sm">
+        <option value="">Any</option>
+        <option value="true" {% if filters.is_done == "true" %}selected{% endif %}>Done</option>
+        <option value="false" {% if filters.is_done == "false" %}selected{% endif %}>Open</option>
+      </select>
+    </div>
+    <div class="col-sm-3">
+      <label for="q-filter" class="form-label">Search</label>
+      <input id="q-filter" type="text" name="q" value="{{ filters.q|default:'' }}" class="form-control form-control-sm" placeholder="title or notes">
+    </div>
+    <div class="col-sm-1">
+      <button type="submit" class="btn btn-sm btn-secondary w-100">Filter</button>
+    </div>
   </div>
 </form>
 
 {% if selected_project_obj %}
   {% if saved_views %}
-  <div class="stack" style="margin-bottom:12px">
-    <strong>Saved views:</strong>
+  <div class="mb-3 d-flex align-items-center flex-wrap gap-2">
+    <strong class="me-1">Saved views:</strong>
     {% for view in saved_views %}
-      <a href="{% url 'tasks:Task_list' %}?{{ view.querystring }}">{{ view.name }}</a>
-      {% if can_write %}
-        <form method="post" action="{% url 'tasks:savedview_delete' view.pk %}" style="display:inline">
-          {% csrf_token %}
-          <button type="submit" class="btn btn-secondary btn-sm" title="Delete view">×</button>
-        </form>
-      {% endif %}
+      <span class="badge bg-light text-dark border">
+        <a href="{% url 'tasks:Task_list' %}?{{ view.querystring }}">{{ view.name }}</a>
+        {% if can_write %}
+          <form method="post" action="{% url 'tasks:savedview_delete' view.pk %}" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-link text-danger p-0 ms-1" title="Delete view">&times;</button>
+          </form>
+        {% endif %}
+      </span>
     {% endfor %}
   </div>
   {% endif %}
   {% if can_write %}
-  <form method="post" action="{% url 'tasks:savedview_create' %}" class="btn-row" style="margin-bottom:16px">
+  <form method="post" action="{% url 'tasks:savedview_create' %}" class="input-group input-group-sm mb-3" style="max-width:420px">
     {% csrf_token %}
     <input type="hidden" name="project" value="{{ selected_project_obj.pk }}">
     {% for key, value in current_filters.items %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endfor %}
-    <input type="text" name="name" placeholder="Save current filters as…" required>
-    <button type="submit" class="btn btn-secondary btn-sm">Save this view</button>
+    <input type="text" name="name" class="form-control" placeholder="Save current filters as…" required>
+    <button type="submit" class="btn btn-outline-secondary">Save view</button>
   </form>
   {% endif %}
 {% endif %}
 {% endif %}
 
-<ul class="item-list">
-  {% for object in object_list %}
-    <li class="item">
-      <a href="{{ object.get_absolute_url }}">{{ object }}</a>
-      <span class="muted">
-        {{ object.project.name }} ·
-        {% if object.status %}{{ object.status_label }}{% else %}{{ object.is_done|yesno:"Done,Open" }}{% endif %}
-      </span>
-    </li>
-  {% empty %}
-    <li class="empty">No tasks here yet.</li>
-  {% endfor %}
-</ul>
+<div class="card">
+  <ul class="list-group list-group-flush">
+    {% for object in object_list %}
+      <li class="list-group-item d-flex justify-content-between align-items-center">
+        <a href="{{ object.get_absolute_url }}">{{ object }}</a>
+        <span class="text-muted small">
+          {{ object.project.name }} ·
+          {% if object.status %}{{ object.status_label }}{% else %}{{ object.is_done|yesno:"Done,Open" }}{% endif %}
+        </span>
+      </li>
+    {% empty %}
+      <li class="list-group-item text-muted">No tasks here yet.</li>
+    {% endfor %}
+  </ul>
+</div>
 
 {% if can_write %}
-<div class="btn-row">
+<div class="mt-3 d-flex gap-2">
   <a class="btn btn-primary" href="{% url 'tasks:Task_create' %}">Create a new task</a>
-  <a class="btn btn-secondary" href="{% url 'tasks:import' %}">Import tasks</a>
+  <a class="btn btn-outline-secondary" href="{% url 'tasks:import' %}">Import tasks</a>
 </div>
 {% endif %}
 

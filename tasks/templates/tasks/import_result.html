@@ -1,30 +1,33 @@
 {% extends "base.html" %}
 {% block title %}Import complete — TaskBoard{% endblock %}
+{% block page_title %}Import complete{% endblock %}
 {% block content %}
 
-<h1 class="page-title">Import complete</h1>
-<p><strong>{{ result.created }}</strong> task{{ result.created|pluralize }} imported into {{ project.name }}.</p>
+<div class="alert alert-success">
+  <strong>{{ result.created }}</strong> task{{ result.created|pluralize }} imported into {{ project.name }}.
+</div>
 
 {% if result.skipped %}
-  <h2>Skipped rows ({{ result.skipped|length }})</h2>
-  <p class="muted">These rows had validation errors and were not imported.</p>
-  <ul class="item-list">
-    {% for row in result.skipped %}
-      <li class="item" style="display:block">
-        <div>Row {{ row.row_number }}</div>
-        <div class="helptext" style="color:var(--danger-dark)">
-          {% for field, message in row.errors.items %}{{ field }}: {{ message }}{% if not forloop.last %}; {% endif %}{% endfor %}
-        </div>
-      </li>
-    {% endfor %}
-  </ul>
+  <div class="card mb-3">
+    <div class="card-header fw-medium">Skipped rows ({{ result.skipped|length }}) — not imported</div>
+    <ul class="list-group list-group-flush">
+      {% for row in result.skipped %}
+        <li class="list-group-item">
+          <div>Row {{ row.row_number }}</div>
+          <div class="text-danger small">
+            {% for field, message in row.errors.items %}{{ field }}: {{ message }}{% if not forloop.last %}; {% endif %}{% endfor %}
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
 {% else %}
-  <p class="muted">No rows were skipped.</p>
+  <p class="text-muted">No rows were skipped.</p>
 {% endif %}
 
-<div class="btn-row">
+<div class="d-flex gap-2">
   <a class="btn btn-primary" href="{{ project.get_absolute_url }}">View project</a>
-  <a class="btn btn-secondary" href="{% url 'tasks:import' %}">Import another file</a>
+  <a class="btn btn-outline-secondary" href="{% url 'tasks:import' %}">Import another file</a>
 </div>
 
 {% endblock %}

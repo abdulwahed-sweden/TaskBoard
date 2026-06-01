@@ -1,30 +1,36 @@
 {% extends "base.html" %}
 {% block title %}Profile — TaskBoard{% endblock %}
+{% block page_title %}{{ user.username }}{% endblock %}
 {% block content %}
 
-<h1 class="page-title">{{ user.username }}</h1>
-<p class="muted">Your account details.</p>
-
-<form method="post">
-  {% csrf_token %}
-  {{ form.non_field_errors }}
-  {{ form.as_div }}
-  <div class="btn-row">
-    <input type="submit" value="Save changes" class="btn btn-primary">
-    <a class="btn btn-secondary" href="{% url 'password_change' %}">Change password</a>
-    <a class="btn btn-secondary" href="{% url 'notification_preferences' %}">Notifications</a>
+<div class="row g-3">
+  <div class="col-lg-6">
+    <div class="card card-body">
+      <p class="text-muted">Your account details.</p>
+      <form method="post">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        {{ form.as_div }}
+        <div class="d-flex gap-2 flex-wrap mt-2">
+          <input type="submit" value="Save changes" class="btn btn-primary">
+          <a class="btn btn-outline-secondary" href="{% url 'password_change' %}">Change password</a>
+          <a class="btn btn-outline-secondary" href="{% url 'notification_preferences' %}">Notifications</a>
+        </div>
+      </form>
+    </div>
   </div>
-</form>
-
-<h3 style="margin-top:28px;">My tasks</h3>
-<ul class="item-list">
-  {% for task in tasks %}
-    <li class="item">
-      <a href="{{ task.get_absolute_url }}">{{ task }}</a>
-    </li>
-  {% empty %}
-    <li class="empty">No tasks yet. <a href="{% url 'tasks:Task_create' %}">Create one</a>.</li>
-  {% endfor %}
-</ul>
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-header fw-medium">My tasks</div>
+      <ul class="list-group list-group-flush">
+        {% for task in tasks %}
+          <li class="list-group-item"><a href="{{ task.get_absolute_url }}">{{ task }}</a></li>
+        {% empty %}
+          <li class="list-group-item text-muted">No tasks yet. <a href="{% url 'tasks:Task_create' %}">Create one</a>.</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
 
 {% endblock %}
