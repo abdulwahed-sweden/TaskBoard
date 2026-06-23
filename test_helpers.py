@@ -13,6 +13,7 @@ from datetime import datetime
 
 from tasks import models as tasks_models
 from organizations import models as organizations_models
+from containers import models as containers_models
 
 
 def random_string(length=10):
@@ -168,5 +169,110 @@ def create_tasks_Comment(**kwargs):
     defaults.setdefault("task", create_tasks_Task())
     defaults.setdefault("author", create_User())
     return tasks_models.Comment.objects.create(**defaults)
+
+
+# --- containers app ----------------------------------------------------------
+
+def create_containers_Customer(**kwargs):
+    defaults = {
+        "name": "%s Customer" % random_string(5),
+        "customer_number": "C-%s" % random_string(6),
+    }
+    defaults.update(**kwargs)
+    defaults.setdefault("organization", create_organizations_Organization())
+    return containers_models.Customer.objects.create(**defaults)
+
+
+def create_containers_Site(**kwargs):
+    defaults = {
+        "label": "%s Site" % random_string(5),
+        "street": "%s Street 1" % random_string(5),
+        "postal_code": "123 45",
+        "city": "Stockholm",
+    }
+    defaults.update(**kwargs)
+    customer = defaults.get("customer")
+    if customer is None:
+        customer = create_containers_Customer(
+            organization=defaults.get("organization")
+            or create_organizations_Organization()
+        )
+        defaults["customer"] = customer
+    defaults.setdefault("organization", customer.organization)
+    return containers_models.Site.objects.create(**defaults)
+
+
+def create_containers_Container(**kwargs):
+    defaults = {
+        "container_type": containers_models.Container.ContainerType.SKIP,
+        "size": "10 m3",
+    }
+    defaults.update(**kwargs)
+    customer = defaults.get("customer")
+    if customer is None:
+        customer = create_containers_Customer(
+            organization=defaults.get("organization")
+            or create_organizations_Organization()
+        )
+        defaults["customer"] = customer
+    defaults.setdefault("organization", customer.organization)
+    return containers_models.Container.objects.create(**defaults)
+
+
+def create_containers_Driver(**kwargs):
+    defaults = {
+        "name": "%s Driver" % random_string(5),
+    }
+    defaults.update(**kwargs)
+    defaults.setdefault("organization", create_organizations_Organization())
+    return containers_models.Driver.objects.create(**defaults)
+
+
+def create_containers_ServiceType(**kwargs):
+    defaults = {
+        "code": "svc_%s" % random_string(4),
+        "name": "%s Service" % random_string(5),
+    }
+    defaults.update(**kwargs)
+    defaults.setdefault("organization", create_organizations_Organization())
+    return containers_models.ServiceType.objects.create(**defaults)
+
+
+def create_containers_ServiceRequest(**kwargs):
+    defaults = {
+        "reference": "SR-%s" % random_string(6),
+    }
+    defaults.update(**kwargs)
+    customer = defaults.get("customer")
+    if customer is None:
+        customer = create_containers_Customer(
+            organization=defaults.get("organization")
+            or create_organizations_Organization()
+        )
+        defaults["customer"] = customer
+    organization = defaults.setdefault("organization", customer.organization)
+    if defaults.get("service_type") is None:
+        defaults["service_type"] = create_containers_ServiceType(
+            organization=organization
+        )
+    return containers_models.ServiceRequest.objects.create(**defaults)
+
+
+def create_containers_Assignment(**kwargs):
+    defaults = {}
+    defaults.update(**kwargs)
+    service_request = defaults.get("service_request")
+    if service_request is None:
+        service_request = create_containers_ServiceRequest(
+            organization=defaults.get("organization")
+            or create_organizations_Organization()
+        )
+        defaults["service_request"] = service_request
+    organization = defaults.setdefault(
+        "organization", service_request.organization
+    )
+    if defaults.get("driver") is None:
+        defaults["driver"] = create_containers_Driver(organization=organization)
+    return containers_models.Assignment.objects.create(**defaults)
 
   
