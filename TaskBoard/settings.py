@@ -79,9 +79,20 @@ REST_FRAMEWORK = {
 
 SPECTACULAR_SETTINGS = {
     'TITLE': 'TaskBoard API',
-    'DESCRIPTION': 'Org/project-scoped task management API.',
+    'DESCRIPTION': (
+        'Organization-scoped API for task management (/tasks/api/v1/) and '
+        'container operations (/containers/api/v1/).'
+    ),
     'VERSION': 'v1',
     'SERVE_INCLUDE_SCHEMA': False,
+    # Give the per-model "status" choice sets distinct OpenAPI enum names (and let
+    # the transition action's to_status reuse the service-request enum) so schema
+    # generation is collision-free.
+    'ENUM_NAME_OVERRIDES': {
+        'ContainerStatusEnum': 'containers.models.CONTAINER_STATUS_CHOICES',
+        'ServiceRequestStatusEnum': 'containers.models.SERVICE_REQUEST_STATUS_CHOICES',
+        'AssignmentStatusEnum': 'containers.models.ASSIGNMENT_STATUS_CHOICES',
+    },
 }
 
 

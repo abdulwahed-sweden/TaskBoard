@@ -56,6 +56,7 @@ urlpatterns = [
     path('accounts/', include('django.contrib.auth.urls')),
     path('organizations/', include('organizations.urls')),
     path('tasks/', include('tasks.urls')),
+    path('containers/', include('containers.urls')),
     # API auth + documentation
     path('api/token/', obtain_auth_token, name='api_token'),
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),

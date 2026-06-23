@@ -411,3 +411,12 @@ class ServiceRequestActivity(models.Model):
 
     def __str__(self):
         return self.description
+
+
+# Module-level aliases for the per-model "status" choice sets. They give
+# drf-spectacular a stable, importable target for ENUM_NAME_OVERRIDES so the
+# generated OpenAPI enums get distinct, non-colliding names (import_string can
+# resolve a module attribute but not a nested TextChoices class).
+CONTAINER_STATUS_CHOICES = Container.Status.choices
+SERVICE_REQUEST_STATUS_CHOICES = ServiceRequest.Status.choices
+ASSIGNMENT_STATUS_CHOICES = Assignment.Status.choices
