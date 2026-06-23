@@ -10,7 +10,7 @@ from django.db import transaction
 
 from organizations.models import Membership
 
-from . import workflow
+from . import notifications, workflow
 from .models import ServiceRequestActivity, ServiceType
 
 # Canonical catalog of services a container operations company offers. Seeded
@@ -102,10 +102,14 @@ def transition_service_request(service_request, to_status, *, user, note=""):
     with transaction.atomic():
         service_request.status = to_status
         service_request.save(update_fields=["status", "updated"])
-        return ServiceRequestActivity.objects.create(
+        activity = ServiceRequestActivity.objects.create(
             service_request=service_request,
             actor=actor,
             action=ServiceRequestActivity.Action.STATUS_CHANGED,
             description=f"{actor_name} changed status to {service_request.get_status_display()}.",
             detail={"from": from_status, "to": to_status, "note": note},
         )
+
+    # After the status change is committed so a mail failure can't roll it back.
+    notifications.notify_transition(service_request, to_status)
+    return activity

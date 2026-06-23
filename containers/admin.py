@@ -127,4 +127,18 @@ admin.site.register(models.Driver, DriverAdmin)
 admin.site.register(models.ServiceType, ServiceTypeAdmin)
 admin.site.register(models.ServiceRequest, ServiceRequestAdmin)
 admin.site.register(models.Assignment, AssignmentAdmin)
+class NotificationLogAdmin(admin.ModelAdmin):
+    list_display = ["recipient", "to_status", "sent", "service_request", "created"]
+    list_filter = ["sent", "to_status"]
+    search_fields = ["recipient", "service_request__reference"]
+    readonly_fields = ["service_request", "to_status", "recipient", "sent", "created"]
+
+    def has_add_permission(self, request):
+        return False  # written by the notification layer
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+
 admin.site.register(models.ServiceRequestActivity, ServiceRequestActivityAdmin)
+admin.site.register(models.NotificationLog, NotificationLogAdmin)
