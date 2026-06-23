@@ -54,6 +54,7 @@ urlpatterns = [
         name='password_reset',
     ),
     path('accounts/', include('django.contrib.auth.urls')),
+    path('i18n/', include('django.conf.urls.i18n')),  # set_language for EN/SV
     path('organizations/', include('organizations.urls')),
     path('tasks/', include('tasks.urls')),
     path('containers/', include('containers.urls')),

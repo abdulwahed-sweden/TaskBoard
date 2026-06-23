@@ -1,0 +1,226 @@
+# Swedish translation for the container operations UI.
+# Distributed under the same license as the project.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: containers\n"
+"Report-Msgid-Bugs-To: \n"
+"PO-Revision-Date: 2026-06-24 00:00+0000\n"
+"Language-Team: Swedish\n"
+"Language: sv\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "Container operations"
+msgstr "Containerverksamhet"
+
+msgid "Operations"
+msgstr "Verksamhet"
+
+msgid "Language"
+msgstr "Språk"
+
+msgid "Active organization"
+msgstr "Aktiv organisation"
+
+msgid "Log out"
+msgstr "Logga ut"
+
+msgid "Log in"
+msgstr "Logga in"
+
+msgid "Dashboard"
+msgstr "Översikt"
+
+msgid "Service requests"
+msgstr "Serviceförfrågningar"
+
+msgid "Customers"
+msgstr "Kunder"
+
+msgid "Containers"
+msgstr "Behållare"
+
+msgid "Drivers"
+msgstr "Förare"
+
+msgid "Type"
+msgstr "Typ"
+
+msgid "Size"
+msgstr "Storlek"
+
+msgid "Customer"
+msgstr "Kund"
+
+msgid "Location"
+msgstr "Plats"
+
+msgid "Status"
+msgstr "Status"
+
+msgid "No containers yet."
+msgstr "Inga behållare ännu."
+
+msgid "Number"
+msgstr "Nummer"
+
+msgid "Email"
+msgstr "E-post"
+
+msgid "Phone"
+msgstr "Telefon"
+
+msgid "Sites"
+msgstr "Adresser"
+
+msgid "No sites."
+msgstr "Inga adresser."
+
+msgid "Recent requests"
+msgstr "Senaste förfrågningar"
+
+msgid "No requests."
+msgstr "Inga förfrågningar."
+
+msgid "Name"
+msgstr "Namn"
+
+msgid "Active"
+msgstr "Aktiv"
+
+msgid "Yes"
+msgstr "Ja"
+
+msgid "No"
+msgstr "Nej"
+
+msgid "No customers yet. Add them via the admin or import."
+msgstr "Inga kunder ännu. Lägg till dem via admin eller import."
+
+msgid "Select an organization to see its operations."
+msgstr "Välj en organisation för att se dess verksamhet."
+
+msgid "Open requests"
+msgstr "Öppna förfrågningar"
+
+msgid "New"
+msgstr "Ny"
+
+msgid "Scheduled today"
+msgstr "Schemalagda idag"
+
+msgid "Unassigned"
+msgstr "Ej tilldelade"
+
+msgid "By status"
+msgstr "Per status"
+
+msgid "No requests yet."
+msgstr "Inga förfrågningar ännu."
+
+#, python-format
+msgid "%(counter)s customer"
+msgid_plural "%(counter)s customers"
+msgstr[0] "%(counter)s kund"
+msgstr[1] "%(counter)s kunder"
+
+msgid "containers"
+msgstr "behållare"
+
+msgid "No drivers yet."
+msgstr "Inga förare ännu."
+
+msgid "Service"
+msgstr "Tjänst"
+
+msgid "Priority"
+msgstr "Prioritet"
+
+msgid "Requested"
+msgstr "Begärd"
+
+msgid "Scheduled"
+msgstr "Schemalagd"
+
+msgid "Contact"
+msgstr "Kontakt"
+
+msgid "Notes"
+msgstr "Anteckningar"
+
+msgid "Change status"
+msgstr "Ändra status"
+
+msgid "Reason (required)"
+msgstr "Orsak (obligatorisk)"
+
+msgid "Activity"
+msgstr "Aktivitet"
+
+msgid "No activity yet."
+msgstr "Ingen aktivitet ännu."
+
+msgid "All statuses"
+msgstr "Alla statusar"
+
+msgid "All priorities"
+msgstr "Alla prioriteter"
+
+msgid "Search reference or contact"
+msgstr "Sök referens eller kontakt"
+
+msgid "Filter"
+msgstr "Filtrera"
+
+msgid "Reference"
+msgstr "Referens"
+
+msgid "No service requests match."
+msgstr "Inga serviceförfrågningar matchar."
+
+msgid "Previous"
+msgstr "Föregående"
+
+msgid "Next"
+msgstr "Nästa"
+
+msgid "Status updated."
+msgstr "Status uppdaterad."
+
+# Service request lifecycle status labels (rendered via variables, so added
+# manually) and priority labels.
+msgid "Verified"
+msgstr "Verifierad"
+
+msgid "Assigned"
+msgstr "Tilldelad"
+
+msgid "In progress"
+msgstr "Pågår"
+
+msgid "Completed"
+msgstr "Slutförd"
+
+msgid "Cancelled"
+msgstr "Avbruten"
+
+msgid "Rejected"
+msgstr "Avvisad"
+
+msgid "Invoice ready"
+msgstr "Klar för fakturering"
+
+msgid "Invoiced"
+msgstr "Fakturerad"
+
+msgid "Low"
+msgstr "Låg"
+
+msgid "Normal"
+msgstr "Normal"
+
+msgid "High"
+msgstr "Hög"
