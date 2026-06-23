@@ -11,7 +11,7 @@ from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import ValidationError
 from django.db.models import Count
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.views import View, generic
@@ -21,8 +21,11 @@ from organizations.permissions import has_role
 from organizations.views import ActiveOrganizationMixin
 
 from . import workflow
+from .importer import IMPORTERS, ImportError as ImportParseError, parse_upload
 from .models import Container, Customer, Driver, ServiceRequest
 from .services import transition_service_request
+
+IMPORT_SESSION_KEY = "containers_import"
 
 OPEN_EXCLUDED = [
     ServiceRequest.Status.COMPLETED,
@@ -218,3 +221,76 @@ class DriverListView(ActiveOrganizationMixin, generic.ListView):
         if not org:
             return Driver.objects.none()
         return Driver.objects.filter(organization=org)
+
+
+class ImportView(ActiveOrganizationMixin, generic.View):
+    """Upload a CSV/XLSX, preview validated rows, then commit. Members and above;
+    the heavy lifting is in containers/importer.py — this is the web wrapper."""
+
+    required_role = Membership.Role.MEMBER
+    template_name = "containers/import.html"
+
+    def get(self, request):
+        payload = request.session.get(IMPORT_SESSION_KEY)
+        preview = entity = None
+        if payload:
+            entity = payload["entity"]
+            importer = IMPORTERS[entity](self.active_organization)
+            preview = importer.preview(payload["rows"], payload["mapping"])
+        return self._render(request, preview, entity)
+
+    def post(self, request):
+        action = request.POST.get("action")
+        if action == "confirm":
+            return self._confirm(request)
+        if action == "cancel":
+            request.session.pop(IMPORT_SESSION_KEY, None)
+            return redirect("containers:import")
+        return self._upload(request)
+
+    def _upload(self, request):
+        entity = request.POST.get("entity")
+        upload = request.FILES.get("file")
+        if entity not in IMPORTERS or not upload:
+            messages.error(request, _("Choose a type and a file."))
+            return redirect("containers:import")
+        try:
+            headers, rows = parse_upload(upload, upload.name)
+        except ImportParseError as exc:
+            messages.error(request, str(exc))
+            return redirect("containers:import")
+        importer = IMPORTERS[entity](self.active_organization)
+        request.session[IMPORT_SESSION_KEY] = {
+            "entity": entity,
+            "rows": rows,
+            "mapping": importer.auto_mapping(headers),
+        }
+        return redirect("containers:import")
+
+    def _confirm(self, request):
+        payload = request.session.pop(IMPORT_SESSION_KEY, None)
+        if not payload:
+            messages.error(request, _("Nothing to import."))
+            return redirect("containers:import")
+        importer = IMPORTERS[payload["entity"]](self.active_organization)
+        result = importer.commit(payload["rows"], payload["mapping"])
+        messages.success(request, _("Imported %(n)s row(s).") % {"n": result["created"]})
+        if result["skipped"]:
+            messages.warning(
+                request, _("Skipped %(n)s row(s).") % {"n": len(result["skipped"])}
+            )
+        return redirect("containers:import")
+
+    def _render(self, request, preview, entity):
+        return render(
+            request,
+            self.template_name,
+            {
+                "entities": [(cls.key, cls.label) for cls in IMPORTERS.values()],
+                "preview": preview,
+                "entity": entity,
+                "valid_count": (
+                    sum(1 for r in preview if r["valid"]) if preview else 0
+                ),
+            },
+        )

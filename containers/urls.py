@@ -28,4 +28,5 @@ urlpatterns = (
     path("customers/<int:pk>/", views.CustomerDetailView.as_view(), name="customer_detail"),
     path("units/", views.ContainerListView.as_view(), name="container_list"),
     path("drivers/", views.DriverListView.as_view(), name="driver_list"),
+    path("imports/", views.ImportView.as_view(), name="import"),
 )

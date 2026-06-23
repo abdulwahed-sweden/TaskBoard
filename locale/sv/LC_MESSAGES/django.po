@@ -224,3 +224,60 @@ msgstr "Normal"
 
 msgid "High"
 msgstr "Hög"
+
+# Import screen.
+msgid "Import"
+msgstr "Import"
+
+msgid "total"
+msgstr "totalt"
+
+msgid "Values"
+msgstr "Värden"
+
+msgid "Result"
+msgstr "Resultat"
+
+msgid "OK"
+msgstr "OK"
+
+msgid "Duplicate"
+msgstr "Dubblett"
+
+msgid "Confirm import"
+msgstr "Bekräfta import"
+
+msgid "Cancel"
+msgstr "Avbryt"
+
+msgid "Data type"
+msgstr "Datatyp"
+
+msgid "File (CSV or XLSX)"
+msgstr "Fil (CSV eller XLSX)"
+
+msgid "Upload and preview"
+msgstr "Ladda upp och förhandsgranska"
+
+msgid "Rows are validated before anything is saved. Invalid or duplicate rows are reported and skipped."
+msgstr "Rader valideras innan något sparas. Ogiltiga rader eller dubbletter rapporteras och hoppas över."
+
+#, python-format
+msgid "%(counter)s valid row"
+msgid_plural "%(counter)s valid rows"
+msgstr[0] "%(counter)s giltig rad"
+msgstr[1] "%(counter)s giltiga rader"
+
+msgid "Choose a type and a file."
+msgstr "Välj en typ och en fil."
+
+msgid "Nothing to import."
+msgstr "Inget att importera."
+
+#, python-format
+msgid "Imported %(n)s row(s)."
+msgstr "Importerade %(n)s rad(er)."
+
+#, python-format
+msgid "Skipped %(n)s row(s)."
+msgstr "Hoppade över %(n)s rad(er)."
