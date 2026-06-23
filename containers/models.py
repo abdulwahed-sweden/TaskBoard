@@ -380,3 +380,34 @@ class Assignment(models.Model):
 
     def __str__(self):
         return f"{self.service_request} → {self.driver}"
+
+
+class ServiceRequestActivity(models.Model):
+    """Append-only record of a service request lifecycle event.
+
+    Written only by the service layer (e.g. status transitions) where the acting
+    user is known; there are no edit/delete paths. Mirrors ``tasks.Activity``
+    and is scoped to its organization through ``service_request``.
+    """
+
+    class Action(models.TextChoices):
+        CREATED = "created", "Created"
+        STATUS_CHANGED = "status_changed", "Status changed"
+
+    service_request = models.ForeignKey(
+        ServiceRequest, on_delete=models.CASCADE, related_name="activities"
+    )
+    actor = models.ForeignKey(
+        "auth.User", null=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    action = models.CharField(max_length=20, choices=Action.choices)
+    description = models.CharField(max_length=255)
+    detail = models.JSONField(default=dict, blank=True)
+    created = models.DateTimeField(auto_now_add=True, editable=False)
+
+    class Meta:
+        ordering = ["-created", "-id"]
+        verbose_name_plural = "service request activities"
+
+    def __str__(self):
+        return self.description

@@ -51,13 +51,23 @@ class AssignmentInline(admin.TabularInline):
     readonly_fields = ["created"]
 
 
+class ServiceRequestActivityInline(admin.TabularInline):
+    model = models.ServiceRequestActivity
+    extra = 0
+    can_delete = False
+    readonly_fields = ["actor", "action", "description", "detail", "created"]
+
+    def has_add_permission(self, request, obj=None):
+        return False  # activity is append-only, recorded by the service layer
+
+
 class ServiceRequestAdmin(admin.ModelAdmin):
     list_display = ["reference", "customer", "service_type", "status", "priority", "requested_date", "scheduled_date", "organization"]
     list_filter = ["organization", "status", "priority", "source", "service_type"]
     search_fields = ["reference", "customer__name", "contact_name"]
     autocomplete_fields = ["organization", "customer", "site", "container", "service_type", "owner"]
     readonly_fields = ["created", "updated"]
-    inlines = [AssignmentInline]
+    inlines = [AssignmentInline, ServiceRequestActivityInline]
 
 
 class AssignmentAdmin(admin.ModelAdmin):
@@ -68,6 +78,19 @@ class AssignmentAdmin(admin.ModelAdmin):
     readonly_fields = ["created"]
 
 
+class ServiceRequestActivityAdmin(admin.ModelAdmin):
+    list_display = ["service_request", "actor", "action", "created"]
+    list_filter = ["action"]
+    search_fields = ["service_request__reference"]
+    readonly_fields = ["service_request", "actor", "action", "description", "detail", "created"]
+
+    def has_add_permission(self, request):
+        return False  # append-only, recorded by the service layer
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+
 admin.site.register(models.Customer, CustomerAdmin)
 admin.site.register(models.Site, SiteAdmin)
 admin.site.register(models.Container, ContainerAdmin)
@@ -75,3 +98,4 @@ admin.site.register(models.Driver, DriverAdmin)
 admin.site.register(models.ServiceType, ServiceTypeAdmin)
 admin.site.register(models.ServiceRequest, ServiceRequestAdmin)
 admin.site.register(models.Assignment, AssignmentAdmin)
+admin.site.register(models.ServiceRequestActivity, ServiceRequestActivityAdmin)
