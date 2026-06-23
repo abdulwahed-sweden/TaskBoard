@@ -1,0 +1,36 @@
+{% extends "portal/base.html" %}
+{% block title %}Request a service{% endblock %}
+{% block body %}
+<div class="card">
+  <h1>{{ info.operator_name }}</h1>
+  <dl>
+    <dt>Container</dt>
+    <dd>{{ info.container_type }} {{ info.size }}</dd>
+    {% if info.site_label or info.site_city %}
+      <dt>Location</dt>
+      <dd>{{ info.site_label }} {{ info.site_city }}</dd>
+    {% endif %}
+  </dl>
+
+  {% if locked %}
+    <p class="errors">Too many requests. Please try again later.</p>
+  {% endif %}
+
+  <form method="post">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    {{ form.website }}
+    <label for="{{ form.service_type.id_for_label }}">Service</label>
+    {{ form.service_type }} {{ form.service_type.errors }}
+    <label for="{{ form.requested_date.id_for_label }}">Preferred date</label>
+    {{ form.requested_date }} {{ form.requested_date.errors }}
+    <label for="{{ form.contact_name.id_for_label }}">Your name</label>
+    {{ form.contact_name }} {{ form.contact_name.errors }}
+    <label for="{{ form.contact_phone.id_for_label }}">Phone</label>
+    {{ form.contact_phone }} {{ form.contact_phone.errors }}
+    <label for="{{ form.notes.id_for_label }}">Notes</label>
+    {{ form.notes }} {{ form.notes.errors }}
+    <button type="submit">Send request</button>
+  </form>
+</div>
+{% endblock %}

@@ -5,6 +5,7 @@ command, the (later) signup flow, the admin, and tests — mirroring
 ``organizations/services.py``.
 """
 
+from django.contrib.auth.hashers import check_password, make_password
 from django.db import transaction
 
 from organizations.models import Membership
@@ -47,6 +48,20 @@ def seed_service_types(organization):
         if was_created:
             created.append(obj)
     return created
+
+
+def set_container_pin(container, raw_pin):
+    """Hash and store a customer-portal PIN on ``container`` (never plaintext)."""
+    container.pin_hash = make_password(raw_pin)
+    container.save(update_fields=["pin_hash"])
+
+
+def check_container_pin(container, raw_pin):
+    """True if ``raw_pin`` matches the container's stored PIN. A container with
+    no PIN set is never accessible (returns False)."""
+    if not container.pin_hash:
+        return False
+    return check_password(raw_pin, container.pin_hash)
 
 
 def _role_for(user, organization):

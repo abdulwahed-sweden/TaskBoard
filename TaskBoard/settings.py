@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     'organizations',
     'tasks',
     'containers',
+    'portal',
 ]
 
 

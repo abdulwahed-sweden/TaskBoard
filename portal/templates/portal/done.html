@@ -1,0 +1,10 @@
+{% extends "portal/base.html" %}
+{% block title %}Request received{% endblock %}
+{% block body %}
+<div class="card">
+  <h1>Thank you</h1>
+  <p>Your request has been received. Your reference is:</p>
+  <p style="font-size: 1.25rem; font-weight: 700;">{{ reference }}</p>
+  <p class="muted">Please keep this reference for any follow-up.</p>
+</div>
+{% endblock %}

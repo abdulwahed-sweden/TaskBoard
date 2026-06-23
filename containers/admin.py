@@ -1,4 +1,6 @@
+from django import forms
 from django.contrib import admin
+from django.contrib.auth.hashers import make_password
 
 from . import models
 
@@ -19,13 +21,40 @@ class SiteAdmin(admin.ModelAdmin):
     readonly_fields = ["created"]
 
 
+class ContainerAdminForm(forms.ModelForm):
+    new_pin = forms.CharField(
+        required=False,
+        widget=forms.PasswordInput(render_value=False),
+        help_text="Set or replace the customer portal PIN. Leave blank to keep the current one.",
+    )
+
+    class Meta:
+        model = models.Container
+        exclude = ["pin_hash"]  # never edit/display the hash directly
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        raw = self.cleaned_data.get("new_pin")
+        if raw:
+            instance.pin_hash = make_password(raw)
+        if commit:
+            instance.save()
+        return instance
+
+
 class ContainerAdmin(admin.ModelAdmin):
-    list_display = ["__str__", "container_type", "size", "customer", "site", "status", "organization"]
+    form = ContainerAdminForm
+    list_display = ["__str__", "container_type", "size", "customer", "site", "status", "pin_set", "organization"]
     list_filter = ["organization", "container_type", "waste_category", "status"]
     search_fields = ["serial_number", "qr_uid", "customer__name"]
     autocomplete_fields = ["organization", "customer", "site"]
-    # qr_uid is auto-generated and immutable; pin_hash must never be edited raw.
-    readonly_fields = ["qr_uid", "pin_hash", "created"]
+    # qr_uid is auto-generated and immutable; the PIN is set via the form's
+    # write-only new_pin field and stored hashed.
+    readonly_fields = ["qr_uid", "created"]
+
+    @admin.display(boolean=True, description="PIN set")
+    def pin_set(self, obj):
+        return bool(obj.pin_hash)
 
 
 class DriverAdmin(admin.ModelAdmin):
