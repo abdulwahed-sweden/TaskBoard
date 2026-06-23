@@ -54,8 +54,11 @@ urlpatterns = [
         name='password_reset',
     ),
     path('accounts/', include('django.contrib.auth.urls')),
+    path('i18n/', include('django.conf.urls.i18n')),  # set_language for EN/SV
     path('organizations/', include('organizations.urls')),
     path('tasks/', include('tasks.urls')),
+    path('containers/', include('containers.urls')),
+    path('c/', include('portal.urls')),
     # API auth + documentation
     path('api/token/', obtain_auth_token, name='api_token'),
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),

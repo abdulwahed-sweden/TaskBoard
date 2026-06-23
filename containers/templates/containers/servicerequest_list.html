@@ -1,0 +1,64 @@
+{% extends "containers/base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Service requests" %}{% endblock %}
+{% block page_title %}{% trans "Service requests" %}{% endblock %}
+
+{% block content %}
+<form method="get" class="row g-2 mb-3">
+  <div class="col-auto">
+    <select name="status" class="form-select form-select-sm">
+      <option value="">{% trans "All statuses" %}</option>
+      {% for value, label in status_choices %}
+        <option value="{{ value }}" {% if current.status == value %}selected{% endif %}>{% trans label %}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-auto">
+    <select name="priority" class="form-select form-select-sm">
+      <option value="">{% trans "All priorities" %}</option>
+      {% for value, label in priority_choices %}
+        <option value="{{ value }}" {% if current.priority == value %}selected{% endif %}>{% trans label %}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-auto">
+    <input type="text" name="q" value="{{ current.q }}" class="form-control form-control-sm" placeholder="{% trans 'Search reference or contact' %}">
+  </div>
+  <div class="col-auto"><button class="btn btn-sm btn-primary">{% trans "Filter" %}</button></div>
+</form>
+
+<div class="card">
+  <table class="table table-hover mb-0">
+    <thead>
+      <tr>
+        <th>{% trans "Reference" %}</th>
+        <th>{% trans "Customer" %}</th>
+        <th>{% trans "Service" %}</th>
+        <th>{% trans "Status" %}</th>
+        <th>{% trans "Requested" %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for sr in requests %}
+        <tr>
+          <td><a href="{% url 'containers:servicerequest_detail' sr.pk %}">{{ sr.reference }}</a></td>
+          <td>{{ sr.customer.name }}</td>
+          <td>{{ sr.service_type.name }}</td>
+          <td>{% trans sr.get_status_display %}</td>
+          <td>{{ sr.requested_date|default:"—" }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5" class="text-muted p-3">{% trans "No service requests match." %}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if is_paginated %}
+  <nav class="mt-3"><ul class="pagination pagination-sm">
+    {% if page_obj.has_previous %}<li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">{% trans "Previous" %}</a></li>{% endif %}
+    <li class="page-item disabled"><span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span></li>
+    {% if page_obj.has_next %}<li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">{% trans "Next" %}</a></li>{% endif %}
+  </ul></nav>
+{% endif %}
+{% endblock %}

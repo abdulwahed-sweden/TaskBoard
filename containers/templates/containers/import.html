@@ -1,0 +1,52 @@
+{% extends "containers/base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Import" %}{% endblock %}
+{% block page_title %}{% trans "Import" %}{% endblock %}
+
+{% block content %}
+{% if preview %}
+  <p>
+    {% blocktrans count counter=valid_count %}{{ counter }} valid row{% plural %}{{ counter }} valid rows{% endblocktrans %}
+    · {{ preview|length }} {% trans "total" %}
+  </p>
+  <div class="card mb-3">
+    <table class="table table-sm mb-0">
+      <thead><tr><th>#</th><th>{% trans "Values" %}</th><th>{% trans "Result" %}</th></tr></thead>
+      <tbody>
+        {% for r in preview %}
+          <tr class="{% if not r.valid %}table-warning{% endif %}">
+            <td>{{ r.row_number }}</td>
+            <td class="small">{{ r.values }}</td>
+            <td class="small">
+              {% if r.valid %}<span class="text-success">{% trans "OK" %}</span>
+              {% elif r.duplicate %}{% trans "Duplicate" %}
+              {% else %}{{ r.errors }}{% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <form method="post" class="d-inline">{% csrf_token %}
+    <input type="hidden" name="action" value="confirm">
+    <button class="btn btn-primary" {% if not valid_count %}disabled{% endif %}>{% trans "Confirm import" %}</button>
+  </form>
+  <form method="post" class="d-inline">{% csrf_token %}
+    <input type="hidden" name="action" value="cancel">
+    <button class="btn btn-outline-secondary">{% trans "Cancel" %}</button>
+  </form>
+{% else %}
+  <form method="post" enctype="multipart/form-data" class="card p-3" style="max-width: 480px;">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="upload">
+    <label>{% trans "Data type" %}</label>
+    <select name="entity" class="form-select mb-3">
+      {% for key, label in entities %}<option value="{{ key }}">{{ label }}</option>{% endfor %}
+    </select>
+    <label>{% trans "File (CSV or XLSX)" %}</label>
+    <input type="file" name="file" accept=".csv,.xlsx" class="form-control mb-3">
+    <button class="btn btn-primary">{% trans "Upload and preview" %}</button>
+  </form>
+  <p class="text-muted mt-2">{% trans "Rows are validated before anything is saved. Invalid or duplicate rows are reported and skipped." %}</p>
+{% endif %}
+{% endblock %}
