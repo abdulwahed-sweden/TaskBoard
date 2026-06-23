@@ -58,9 +58,9 @@ class ContainerAdmin(admin.ModelAdmin):
 
 
 class DriverAdmin(admin.ModelAdmin):
-    list_display = ["name", "phone", "user", "organization", "is_active"]
+    list_display = ["name", "phone", "email", "user", "organization", "is_active"]
     list_filter = ["organization", "is_active"]
-    search_fields = ["name", "phone"]
+    search_fields = ["name", "phone", "email"]
     autocomplete_fields = ["organization", "user"]
     readonly_fields = ["created"]
 

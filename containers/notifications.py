@@ -71,3 +71,53 @@ def notify_transition(service_request, to_status):
         recipient=recipient,
         sent=sent,
     )
+
+
+def _driver_email(driver):
+    """The driver's contact email: their own, else the linked login user's."""
+    if driver.email:
+        return driver.email
+    if driver.user_id and driver.user.email:
+        return driver.user.email
+    return ""
+
+
+def notify_assignment(assignment):
+    """Best-effort email to the driver assigned to a request. Logged against the
+    request with the ``assigned`` status. Never raises; returns the
+    ``NotificationLog`` or ``None`` when there is no recipient."""
+    recipient = (_driver_email(assignment.driver) or "").strip()
+    if not recipient:
+        return None
+
+    sr = assignment.service_request
+    operator = sr.organization.name
+    when = assignment.scheduled_date or sr.scheduled_date
+    subject = f"[{operator}] Assigned: {sr.reference}"
+    body = (
+        f"You have been assigned service request {sr.reference}"
+        + (f" for {when}" if when else "")
+        + f".\n\n{operator}"
+    )
+
+    sent = False
+    try:
+        send_mail(
+            subject,
+            body,
+            settings.DEFAULT_FROM_EMAIL,
+            [recipient],
+            fail_silently=False,
+        )
+        sent = True
+    except OSError:
+        logger.exception(
+            "Failed to send assignment notification for %s", sr.reference
+        )
+
+    return NotificationLog.objects.create(
+        service_request=sr,
+        to_status=ServiceRequest.Status.ASSIGNED,
+        recipient=recipient,
+        sent=sent,
+    )
