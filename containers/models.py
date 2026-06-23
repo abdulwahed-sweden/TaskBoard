@@ -413,6 +413,28 @@ class ServiceRequestActivity(models.Model):
         return self.description
 
 
+class NotificationLog(models.Model):
+    """Append-only record of a transition notification email (best-effort).
+
+    Scoped to its organization through ``service_request`` (like
+    ``ServiceRequestActivity``). ``sent`` records whether the send succeeded.
+    """
+
+    service_request = models.ForeignKey(
+        ServiceRequest, on_delete=models.CASCADE, related_name="notifications"
+    )
+    to_status = models.CharField(max_length=60)
+    recipient = models.EmailField()
+    sent = models.BooleanField(default=False)
+    created = models.DateTimeField(auto_now_add=True, editable=False)
+
+    class Meta:
+        ordering = ["-created", "-id"]
+
+    def __str__(self):
+        return f"{self.recipient} ({self.to_status})"
+
+
 # Module-level aliases for the per-model "status" choice sets. They give
 # drf-spectacular a stable, importable target for ENUM_NAME_OVERRIDES so the
 # generated OpenAPI enums get distinct, non-colliding names (import_string can
