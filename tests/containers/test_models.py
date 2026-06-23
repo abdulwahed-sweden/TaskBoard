@@ -60,6 +60,7 @@ def test_service_request_defaults():
     request = test_helpers.create_containers_ServiceRequest()
     assert request.source == ServiceRequest.Source.PORTAL
     assert request.priority == ServiceRequest.Priority.NORMAL
+    assert request.status == ServiceRequest.Status.NEW
     assert request.custom_fields == {}
 
 

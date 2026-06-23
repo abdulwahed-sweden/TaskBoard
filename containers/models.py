@@ -257,6 +257,18 @@ class ServiceRequest(models.Model):
         NORMAL = "normal", "Normal"
         HIGH = "high", "High"
 
+    class Status(models.TextChoices):
+        NEW = "new", "New"
+        VERIFIED = "verified", "Verified"
+        SCHEDULED = "scheduled", "Scheduled"
+        ASSIGNED = "assigned", "Assigned"
+        IN_PROGRESS = "in_progress", "In progress"
+        COMPLETED = "completed", "Completed"
+        CANCELLED = "cancelled", "Cancelled"
+        REJECTED = "rejected", "Rejected"
+        INVOICE_READY = "invoice_ready", "Invoice ready"
+        INVOICED = "invoiced", "Invoiced"
+
     organization = models.ForeignKey(
         "organizations.Organization",
         on_delete=models.CASCADE,
@@ -287,8 +299,11 @@ class ServiceRequest(models.Model):
     source = models.CharField(
         max_length=20, choices=Source.choices, default=Source.PORTAL
     )
-    # Workflow status; validated against the engine in a later phase.
-    status = models.CharField(max_length=60, blank=True, default="")
+    # Operational lifecycle status; transitions are governed by
+    # containers/workflow.py (the role-aware transition layer).
+    status = models.CharField(
+        max_length=60, choices=Status.choices, default=Status.NEW, blank=True
+    )
     priority = models.CharField(
         max_length=10, choices=Priority.choices, default=Priority.NORMAL
     )
