@@ -1,0 +1,206 @@
+/* ======================================================================
+   TaskBoard admin theme — clean, high-contrast, readable.
+   Single forced light theme, larger type, guaranteed text/background contrast.
+   ====================================================================== */
+
+:root,
+:root[data-theme="light"],
+:root[data-theme="dark"],
+html { color-scheme: light; }
+
+:root,
+:root[data-theme="light"],
+:root[data-theme="dark"] {
+  --primary: #2563eb;
+  --primary-fg: #ffffff;
+  --secondary: #1d4ed8;
+  --accent: #2563eb;
+
+  --body-fg: #111827;
+  --body-bg: #f3f4f6;
+  --body-quiet-color: #4b5563;
+  --body-medium-color: #374151;
+  --body-loud-color: #111827;
+
+  --header-color: #e5e7eb;
+  --header-branding-color: #ffffff;
+  --header-bg: #111827;
+  --header-link-color: #ffffff;
+
+  --breadcrumbs-fg: #e5e7eb;
+  --breadcrumbs-link-fg: #ffffff;
+  --breadcrumbs-bg: #1f2937;
+
+  --link-fg: #1d4ed8;
+  --link-hover-color: #1e40af;
+  --link-selected-fg: #1d4ed8;
+
+  --hairline-color: #e5e7eb;
+  --border-color: #d7dce3;
+
+  --button-fg: #ffffff;
+  --button-bg: #2563eb;
+  --button-hover-bg: #1d4ed8;
+  --default-button-bg: #2563eb;
+  --default-button-hover-bg: #1d4ed8;
+  --close-button-bg: #6b7280;
+  --close-button-hover-bg: #4b5563;
+  --delete-button-bg: #dc2626;
+  --delete-button-hover-bg: #b91c1c;
+
+  --object-tools-fg: #ffffff;
+  --object-tools-bg: #2563eb;
+  --object-tools-hover-bg: #1d4ed8;
+
+  --selected-bg: #eff6ff;
+  --selected-row: #eff6ff;
+  --darkened-bg: #eef1f5;
+
+  --font-family-primary: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+}
+
+/* ---- base typography ----------------------------------------------------
+   Django admin is fully rem-based (body 0.875rem, many elements 0.6875rem ≈
+   11px) scaled from the root, so bumping the ROOT enlarges the whole UI at once
+   instead of fighting it element by element. */
+
+html { font-size: 19px; }
+body {
+  font-family: var(--font-family-primary);
+  font-size: 0.9rem;          /* ~17px */
+  line-height: 1.6;
+  color: var(--body-fg);
+  background: var(--body-bg);
+}
+p, td, th, li, input, select, textarea, .button, a.button, .vTextField,
+#content, #content-main, .form-row, .help, .helptext { font-size: 0.9rem; }
+/* lift the very small Django defaults to a readable floor */
+.object-tools a, #changelist table thead th, div.breadcrumbs,
+.paginator, ul.messagelist li, .help, .helptext { font-size: 0.82rem; }
+a { color: var(--link-fg); }
+
+/* ---- header ------------------------------------------------------------- */
+
+#header { background: var(--header-bg); padding: 18px 40px; align-items: center; }
+#branding h1 { font-size: 24px; font-weight: 700; margin: 0; color: #fff; }
+#branding h1 a { color: #fff; }
+.brand-dot {
+  display: inline-block; width: 22px; height: 22px; border-radius: 6px;
+  background: #2563eb; vertical-align: -4px; margin-right: 10px;
+}
+#user-tools { font-size: 15px; text-transform: none; letter-spacing: normal; line-height: 1.6; color: #e5e7eb; }
+#user-tools a { color: #fff; border-bottom: none; font-weight: 600; }
+
+div.breadcrumbs { background: var(--breadcrumbs-bg); color: #e5e7eb; padding: 12px 40px; font-size: 15px; }
+div.breadcrumbs a { color: #fff; }
+
+#content { padding: 30px 40px; }
+h1 { font-size: 26px; }
+.dashboard #content { max-width: 1080px; margin: 0 auto; }
+
+/* ---- modules / cards (light header => DARK text) ----------------------- */
+
+.module {
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(17,24,39,.05), 0 12px 28px -20px rgba(17,24,39,.22);
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+.module > h2,
+.module caption,
+.inline-group h2,
+#content-related .module h2 {
+  background: #f3f4f6;
+  color: #111827;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border-color);
+}
+/* App/section headings (these were white-on-light before — now dark). */
+a.section,
+a.section:link,
+a.section:visited,
+.module caption a,
+.module h2 a {
+  color: #111827 !important;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: 0;
+}
+a.section:hover, .module caption a:hover { color: var(--primary) !important; }
+
+/* ---- change list tables ------------------------------------------------- */
+
+#changelist .results { border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden; }
+table { font-size: 16px; }
+#changelist table thead th {
+  background: #f3f4f6; color: #1f2937;
+  font-size: 14px; font-weight: 700; text-transform: none; letter-spacing: 0;
+  padding: 13px 14px; border-bottom: 1px solid var(--border-color);
+}
+#changelist table thead th a, #changelist table thead th.sorted a { color: #1f2937; }
+#changelist table tbody td, #changelist table tbody th { padding: 13px 14px; border-bottom: 1px solid var(--hairline-color); }
+#changelist table tbody tr:hover { background: #f8fafc; }
+
+#changelist-filter { background: #fff; border: 1px solid var(--border-color); border-radius: 12px; }
+#changelist-filter h2 { background: #f3f4f6; color: #111827; font-size: 14px; padding: 12px 14px; }
+#changelist-filter li.selected a { color: var(--primary); font-weight: 700; }
+#toolbar { background: #fff; border: 1px solid var(--border-color); border-radius: 12px; padding: 12px 14px; }
+#toolbar #searchbar { font-size: 16px; padding: 10px 12px; }
+
+/* ---- object tools (Add / History) -------------------------------------- */
+
+.object-tools a, .object-tools a:link, .object-tools a:visited {
+  color: #fff; border-radius: 999px; padding: 9px 17px; font-size: 14px; font-weight: 600;
+  text-transform: none; letter-spacing: 0;
+}
+
+/* ---- buttons ------------------------------------------------------------ */
+
+.button, input[type=submit], input[type=button], .submit-row input, a.button {
+  border-radius: 10px; padding: 11px 18px; font-size: 16px; font-weight: 600;
+  border: 1px solid transparent;
+}
+.submit-row { background: #fff; border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; }
+.deletelink, .deletelink:link, .deletelink:visited { background: var(--delete-button-bg); color: #fff; }
+
+/* ---- forms (clear, roomy) ---------------------------------------------- */
+
+.form-row { padding: 15px 16px; border-bottom: 1px solid var(--hairline-color); }
+.form-row > div { line-height: 1.6; }
+label, .aligned label { font-size: 15px; font-weight: 600; color: #1f2937; }
+.aligned label { width: 200px; }
+input[type=text], input[type=password], input[type=email], input[type=url],
+input[type=number], input[type=tel], textarea, select, .vTextField {
+  font-size: 16px; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 9px;
+  color: #111827; background: #fff;
+}
+input:focus, textarea:focus, select:focus, .vTextField:focus {
+  outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px #dbeafe;
+}
+.help, .helptext, p.help, div.help { font-size: 14px; color: var(--body-quiet-color); }
+
+/* ---- login -------------------------------------------------------------- */
+
+body.login { background: #f3f4f6; }
+body.login #container {
+  border-radius: 16px; border: 1px solid var(--border-color);
+  box-shadow: 0 24px 60px -28px rgba(17,24,39,.4); overflow: hidden; margin-top: 7vh;
+}
+body.login #content { padding: 26px; }
+body.login .form-row { border: none; padding: 10px 0; }
+body.login .submit-row { border: none; padding: 0; }
+body.login .submit-row input { width: 100%; padding: 13px; font-size: 16px; }
+
+/* ---- messages / pagination --------------------------------------------- */
+
+ul.messagelist li { font-size: 15px; border-radius: 10px; border: 1px solid #e5e7eb; padding: 13px 16px 13px 40px; color: #111827; }
+.paginator { font-size: 15px; }
+.paginator a:link, .paginator a:visited { background: #fff; border: 1px solid var(--border-color); border-radius: 8px; padding: 6px 12px; color: var(--link-fg); }
+.paginator .this-page { background: var(--primary); color: #fff; border-radius: 8px; padding: 6px 12px; }

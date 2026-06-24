@@ -1,124 +1,74 @@
-{% load static i18n %}
-<!doctype html>
+{% load static i18n %}<!doctype html>
 <html lang="{{ LANGUAGE_CODE|default:'en' }}">
-  <head>
-    <meta charset="UTF-8">
-    <title>{% block title %}{% trans "Container operations" %}{% endblock %}</title>
-    <meta name="viewport" content="width=device-width, maximum-scale=5, initial-scale=1">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{% trans "Container operations" %}{% endblock %} · Ops</title>
+  <link rel="stylesheet" href="{% static 'containers/ops.css' %}">
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+<div class="app">
 
-    <link rel="stylesheet" href="{% static 'smarty/css/core.min.css' %}">
-    <link rel="stylesheet" href="{% static 'smarty/css/vendor_bundle.min.css' %}">
+  <aside class="sidebar">
+    <a class="brand" href="{% url 'containers:dashboard' %}">
+      <span class="dot"></span> Ops
+    </a>
+    {% if user.is_authenticated %}
+    <nav class="nav">
+      {% url 'containers:dashboard' as u_dash %}
+      {% url 'containers:servicerequest_list' as u_req %}
+      {% url 'containers:customer_list' as u_cust %}
+      {% url 'containers:container_list' as u_cont %}
+      {% url 'containers:driver_list' as u_drv %}
+      {% url 'containers:import' as u_imp %}
+      <a href="{{ u_dash }}" class="{% if request.path == u_dash %}active{% endif %}"><span class="ic">◫</span>{% trans "Dashboard" %}</a>
+      <a href="{{ u_req }}" class="{% if '/requests/' in request.path %}active{% endif %}"><span class="ic">≣</span>{% trans "Service requests" %}</a>
+      <a href="{{ u_cust }}" class="{% if '/customers/' in request.path %}active{% endif %}"><span class="ic">☻</span>{% trans "Customers" %}</a>
+      <a href="{{ u_cont }}" class="{% if request.path == u_cont %}active{% endif %}"><span class="ic">▥</span>{% trans "Containers" %}</a>
+      <a href="{{ u_drv }}" class="{% if request.path == u_drv %}active{% endif %}"><span class="ic">⛟</span>{% trans "Drivers" %}</a>
+      <a href="{{ u_imp }}" class="{% if request.path == u_imp %}active{% endif %}"><span class="ic">⤓</span>{% trans "Import" %}</a>
+    </nav>
+    {% endif %}
+    <div class="foot">© {% trans "Container operations" %}</div>
+  </aside>
 
-    <style>
-      #middle .card { border: 1px solid #e5e7eb; border-radius: .5rem; }
-      #middle .stat { font-size: 1.6rem; font-weight: 700; }
-      #middle table { width: 100%; }
-      .badge-status { font-size: .75rem; text-transform: capitalize; }
-    </style>
-    {% block extra_css %}{% endblock %}
-  </head>
-
-  <body class="layout-admin aside-sticky header-sticky">
-    <div id="wrapper" class="d-flex align-items-stretch flex-column">
-
-      <header id="header" class="shadow-xs">
-        <div class="container-fluid position-relative">
-          <nav class="navbar navbar-expand-lg navbar-light justify-content-between">
-            <span class="navbar-brand fw-bold d-lg-none">{% trans "Operations" %}</span>
-            <ul class="list-inline list-unstyled mb-0 d-flex align-items-center gap-3">
-              <li class="list-inline-item">
-                <form method="post" action="{% url 'set_language' %}" class="m-0 d-flex align-items-center gap-1">
-                  {% csrf_token %}
-                  <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                  <select name="language" class="form-select form-select-sm" onchange="this.form.submit()" aria-label="{% trans 'Language' %}">
-                    {% get_current_language as cur %}
-                    {% get_available_languages as langs %}
-                    {% for code, name in langs %}
-                      <option value="{{ code }}" {% if code == cur %}selected{% endif %}>{{ name }}</option>
-                    {% endfor %}
-                  </select>
-                </form>
-              </li>
-              {% if user.is_authenticated %}
-                {% if user_organizations %}
-                  <li class="list-inline-item">
-                    <form method="post" action="{% url 'organizations:switch' %}" class="m-0">
-                      {% csrf_token %}
-                      <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                      <select name="organization" class="form-select form-select-sm" onchange="this.form.submit()" aria-label="{% trans 'Active organization' %}">
-                        {% for org in user_organizations %}
-                          <option value="{{ org.pk }}" {% if active_organization and org.pk == active_organization.pk %}selected{% endif %}>{{ org.name }}</option>
-                        {% endfor %}
-                      </select>
-                    </form>
-                  </li>
-                {% endif %}
-                <li class="list-inline-item"><a href="{% url 'profile' %}" class="fw-medium">{{ user.username }}</a></li>
-                <li class="list-inline-item">
-                  <form method="post" action="{% url 'logout' %}" class="m-0">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-sm btn-outline-secondary">{% trans "Log out" %}</button>
-                  </form>
-                </li>
-              {% else %}
-                <li class="list-inline-item"><a href="{% url 'login' %}">{% trans "Log in" %}</a></li>
-              {% endif %}
-            </ul>
-          </nav>
-        </div>
-      </header>
-
-      <div id="wrapper_content" class="d-flex flex-fill">
-        <aside id="aside-main" class="aside-start aside-primary aside-hide-xs d-flex flex-column h-auto">
-          <div class="d-none d-sm-block">
-            <a class="navbar-brand d-block p-3" href="{% url 'containers:dashboard' %}">
-              <span class="fs-5 fw-bold text-white">{% trans "Operations" %}</span>
-            </a>
-          </div>
-          <div class="aside-wrapper scrollable-vertical scrollable-styled-light align-self-baseline h-100 w-100">
-            <nav class="nav-deep nav-deep-dark nav-deep-hover pb-5">
-              <ul class="nav flex-column">
-                {% url 'containers:dashboard' as u_dash %}
-                {% url 'containers:servicerequest_list' as u_req %}
-                {% url 'containers:customer_list' as u_cust %}
-                {% url 'containers:container_list' as u_cont %}
-                {% url 'containers:driver_list' as u_drv %}
-                {% url 'containers:import' as u_imp %}
-                <li class="nav-item {% if request.path == u_dash %}active{% endif %}"><a class="nav-link" href="{{ u_dash }}"><span>{% trans "Dashboard" %}</span></a></li>
-                <li class="nav-item {% if '/requests/' in request.path %}active{% endif %}"><a class="nav-link" href="{{ u_req }}"><span>{% trans "Service requests" %}</span></a></li>
-                <li class="nav-item {% if '/customers/' in request.path %}active{% endif %}"><a class="nav-link" href="{{ u_cust }}"><span>{% trans "Customers" %}</span></a></li>
-                <li class="nav-item {% if request.path == u_cont %}active{% endif %}"><a class="nav-link" href="{{ u_cont }}"><span>{% trans "Containers" %}</span></a></li>
-                <li class="nav-item {% if request.path == u_drv %}active{% endif %}"><a class="nav-link" href="{{ u_drv }}"><span>{% trans "Drivers" %}</span></a></li>
-                <li class="nav-item {% if request.path == u_imp %}active{% endif %}"><a class="nav-link" href="{{ u_imp }}"><span>{% trans "Import" %}</span></a></li>
-              </ul>
-            </nav>
-          </div>
-        </aside>
-
-        <main id="middle" class="flex-fill">
-          <div class="container-fluid p-3 p-lg-4">
-            <header class="mb-4 pb-2 border-bottom">
-              <h1 class="h4 mb-0">{% block page_title %}{% endblock %}</h1>
-            </header>
-
-            {% if messages %}
-              {% for message in messages %}
-                <div class="alert alert-{{ message.tags|default:'info' }}">{{ message }}</div>
-              {% endfor %}
-            {% endif %}
-
-            {% block content %}{% endblock %}
-          </div>
-        </main>
+  <div class="main">
+    <header class="topbar">
+      <h1>{% block page_title %}{% endblock %}</h1>
+      <div class="tools">
+        <form method="post" action="{% url 'set_language' %}">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{{ request.get_full_path }}">
+          {% get_current_language as cur %}{% get_available_languages as langs %}
+          <select name="language" class="select select-sm" onchange="this.form.submit()" aria-label="{% trans 'Language' %}">
+            {% for code, name in langs %}<option value="{{ code }}" {% if code == cur %}selected{% endif %}>{{ name }}</option>{% endfor %}
+          </select>
+        </form>
+        {% if user.is_authenticated %}
+          {% if user_organizations %}
+          <form method="post" action="{% url 'organizations:switch' %}">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <select name="organization" class="select select-sm" onchange="this.form.submit()" aria-label="{% trans 'Active organization' %}">
+              {% for org in user_organizations %}<option value="{{ org.pk }}" {% if active_organization and org.pk == active_organization.pk %}selected{% endif %}>{{ org.name }}</option>{% endfor %}
+            </select>
+          </form>
+          {% endif %}
+          <span class="subtle">{{ user.username }}</span>
+          <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="btn btn-ghost btn-sm">{% trans "Log out" %}</button></form>
+        {% else %}
+          <a class="btn btn-sm" href="{% url 'login' %}">{% trans "Log in" %}</a>
+        {% endif %}
       </div>
+    </header>
 
-      <footer id="footer" class="aside-primary text-white">
-        <div class="p-3 fs--14">&copy; {% trans "Container operations" %}</div>
-      </footer>
+    <div class="content">
+      {% if messages %}{% for message in messages %}<div class="alert alert-{{ message.tags|default:'info' }}">{{ message }}</div>{% endfor %}{% endif %}
+      {% block content %}{% endblock %}
     </div>
+  </div>
 
-    <script src="{% static 'smarty/js/core.min.js' %}"></script>
-    <script src="{% static 'smarty/js/vendor_bundle.min.js' %}"></script>
-    {% block extra_js %}{% endblock %}
-  </body>
+</div>
+</body>
 </html>

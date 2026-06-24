@@ -5,48 +5,45 @@
 
 {% block content %}
 {% if preview %}
-  <p>
-    {% blocktrans count counter=valid_count %}{{ counter }} valid row{% plural %}{{ counter }} valid rows{% endblocktrans %}
-    · {{ preview|length }} {% trans "total" %}
-  </p>
-  <div class="card mb-3">
-    <table class="table table-sm mb-0">
+  <div class="toolbar">
+    <strong>{% blocktrans count counter=valid_count %}{{ counter }} valid row{% plural %}{{ counter }} valid rows{% endblocktrans %}</strong>
+    <span class="subtle">· {{ preview|length }} {% trans "total" %}</span>
+    <span class="spacer"></span>
+    <form method="post">{% csrf_token %}<input type="hidden" name="action" value="confirm"><button class="btn" {% if not valid_count %}disabled{% endif %}>{% trans "Confirm import" %}</button></form>
+    <form method="post">{% csrf_token %}<input type="hidden" name="action" value="cancel"><button class="btn btn-ghost">{% trans "Cancel" %}</button></form>
+  </div>
+  <div class="panel">
+    <table class="table">
       <thead><tr><th>#</th><th>{% trans "Values" %}</th><th>{% trans "Result" %}</th></tr></thead>
       <tbody>
         {% for r in preview %}
-          <tr class="{% if not r.valid %}table-warning{% endif %}">
-            <td>{{ r.row_number }}</td>
-            <td class="small">{{ r.values }}</td>
-            <td class="small">
-              {% if r.valid %}<span class="text-success">{% trans "OK" %}</span>
-              {% elif r.duplicate %}{% trans "Duplicate" %}
-              {% else %}{{ r.errors }}{% endif %}
+          <tr>
+            <td class="muted">{{ r.row_number }}</td>
+            <td class="subtle">{{ r.values }}</td>
+            <td>
+              {% if r.valid %}<span class="pill s-completed">{% trans "OK" %}</span>
+              {% elif r.duplicate %}<span class="pill s-cancelled">{% trans "Duplicate" %}</span>
+              {% else %}<span class="pill s-rejected">{{ r.errors }}</span>{% endif %}
             </td>
           </tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
-  <form method="post" class="d-inline">{% csrf_token %}
-    <input type="hidden" name="action" value="confirm">
-    <button class="btn btn-primary" {% if not valid_count %}disabled{% endif %}>{% trans "Confirm import" %}</button>
-  </form>
-  <form method="post" class="d-inline">{% csrf_token %}
-    <input type="hidden" name="action" value="cancel">
-    <button class="btn btn-outline-secondary">{% trans "Cancel" %}</button>
-  </form>
 {% else %}
-  <form method="post" enctype="multipart/form-data" class="card p-3" style="max-width: 480px;">
-    {% csrf_token %}
-    <input type="hidden" name="action" value="upload">
-    <label>{% trans "Data type" %}</label>
-    <select name="entity" class="form-select mb-3">
-      {% for key, label in entities %}<option value="{{ key }}">{{ label }}</option>{% endfor %}
-    </select>
-    <label>{% trans "File (CSV or XLSX)" %}</label>
-    <input type="file" name="file" accept=".csv,.xlsx" class="form-control mb-3">
-    <button class="btn btn-primary">{% trans "Upload and preview" %}</button>
-  </form>
-  <p class="text-muted mt-2">{% trans "Rows are validated before anything is saved. Invalid or duplicate rows are reported and skipped." %}</p>
+  <div class="card card-pad" style="max-width:460px">
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="upload">
+      <p><label>{% trans "Data type" %}</label><br>
+        <select name="entity" class="select" style="width:100%">
+          {% for key, label in entities %}<option value="{{ key }}">{{ label }}</option>{% endfor %}
+        </select></p>
+      <p><label>{% trans "File (CSV or XLSX)" %}</label><br>
+        <input type="file" name="file" accept=".csv,.xlsx" class="input" style="width:100%"></p>
+      <button class="btn">{% trans "Upload and preview" %}</button>
+    </form>
+  </div>
+  <p class="subtle" style="margin-top:14px">{% trans "Rows are validated before anything is saved. Invalid or duplicate rows are reported and skipped." %}</p>
 {% endif %}
 {% endblock %}
