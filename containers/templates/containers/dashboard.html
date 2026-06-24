@@ -5,53 +5,52 @@
 
 {% block content %}
 {% if not active_organization %}
-  <p class="text-muted">{% trans "Select an organization to see its operations." %}</p>
+  <div class="card card-pad empty">{% trans "Select an organization to see its operations." %}</div>
 {% else %}
-<div class="row g-3 mb-4">
-  <div class="col-6 col-lg-3"><div class="card p-3"><div class="stat">{{ open_count }}</div><div class="text-muted">{% trans "Open requests" %}</div></div></div>
-  <div class="col-6 col-lg-3"><div class="card p-3"><div class="stat">{{ new_count }}</div><div class="text-muted">{% trans "New" %}</div></div></div>
-  <div class="col-6 col-lg-3"><div class="card p-3"><div class="stat">{{ scheduled_today }}</div><div class="text-muted">{% trans "Scheduled today" %}</div></div></div>
-  <div class="col-6 col-lg-3"><div class="card p-3"><div class="stat">{{ unassigned }}</div><div class="text-muted">{% trans "Unassigned" %}</div></div></div>
+
+<div class="grid stat-grid">
+  <div class="card stat"><div class="label">{% trans "Open requests" %}</div><div class="value">{{ open_count }}</div><div class="accent"></div></div>
+  <div class="card stat s-violet"><div class="label">{% trans "New" %}</div><div class="value">{{ new_count }}</div><div class="accent"></div></div>
+  <div class="card stat s-amber"><div class="label">{% trans "Scheduled today" %}</div><div class="value">{{ scheduled_today }}</div><div class="accent"></div></div>
+  <div class="card stat s-green"><div class="label">{% trans "Unassigned" %}</div><div class="value">{{ unassigned }}</div><div class="accent"></div></div>
 </div>
 
-<div class="row g-3">
-  <div class="col-lg-6">
-    <div class="card p-3">
-      <h2 class="h6">{% trans "By status" %}</h2>
-      <table class="table table-sm mb-0">
-        <tbody>
-          {% for row in by_status %}
-            <tr><td class="text-capitalize">{{ row.status }}</td><td class="text-end">{{ row.n }}</td></tr>
-          {% empty %}
-            <tr><td class="text-muted">{% trans "No requests yet." %}</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
+<div class="grid cols-3-2">
+  <div class="panel">
+    <div class="panel-head">{% trans "Recent requests" %}</div>
+    <table class="table">
+      <tbody>
+        {% for sr in recent %}
+          <tr>
+            <td><a href="{% url 'containers:servicerequest_detail' sr.pk %}">{{ sr.reference }}</a></td>
+            <td>{{ sr.customer.name }}</td>
+            <td class="num"><span class="pill s-{{ sr.status }}">{% trans sr.get_status_display %}</span></td>
+          </tr>
+        {% empty %}
+          <tr><td class="muted">{% trans "No requests yet." %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
-  <div class="col-lg-6">
-    <div class="card p-3">
-      <h2 class="h6">{% trans "Recent requests" %}</h2>
-      <table class="table table-sm mb-0">
-        <tbody>
-          {% for sr in recent %}
-            <tr>
-              <td><a href="{% url 'containers:servicerequest_detail' sr.pk %}">{{ sr.reference }}</a></td>
-              <td>{{ sr.customer.name }}</td>
-              <td class="text-end">{% trans sr.get_status_display %}</td>
-            </tr>
-          {% empty %}
-            <tr><td class="text-muted">{% trans "No requests yet." %}</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
+
+  <div class="panel">
+    <div class="panel-head">{% trans "By status" %}</div>
+    <div class="panel-body">
+      {% for row in by_status %}
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 0;">
+          <span class="pill s-{{ row.status }}">{{ row.status }}</span>
+          <strong>{{ row.n }}</strong>
+        </div>
+      {% empty %}
+        <p class="muted">{% trans "No requests yet." %}</p>
+      {% endfor %}
+      <hr style="border:none;border-top:1px solid var(--line);margin:14px 0">
+      <p class="subtle">
+        {% blocktrans count counter=customer_count %}{{ counter }} customer{% plural %}{{ counter }} customers{% endblocktrans %}
+        · {{ container_count }} {% trans "containers" %}
+      </p>
     </div>
   </div>
 </div>
-
-<p class="text-muted mt-3">
-  {% blocktrans count counter=customer_count %}{{ counter }} customer{% plural %}{{ counter }} customers{% endblocktrans %}
-  · {{ container_count }} {% trans "containers" %}
-</p>
 {% endif %}
 {% endblock %}

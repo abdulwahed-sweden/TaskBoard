@@ -4,47 +4,47 @@
 {% block page_title %}{{ service_request.reference }}{% endblock %}
 
 {% block content %}
-<div class="row g-3">
-  <div class="col-lg-7">
-    <div class="card p-3 mb-3">
-      <dl class="row mb-0">
-        <dt class="col-4">{% trans "Status" %}</dt><dd class="col-8">{% trans service_request.get_status_display %}</dd>
-        <dt class="col-4">{% trans "Customer" %}</dt><dd class="col-8">{{ service_request.customer.name }}</dd>
-        <dt class="col-4">{% trans "Service" %}</dt><dd class="col-8">{{ service_request.service_type.name }}</dd>
-        <dt class="col-4">{% trans "Priority" %}</dt><dd class="col-8">{% trans service_request.get_priority_display %}</dd>
-        <dt class="col-4">{% trans "Requested" %}</dt><dd class="col-8">{{ service_request.requested_date|default:"—" }}</dd>
-        <dt class="col-4">{% trans "Scheduled" %}</dt><dd class="col-8">{{ service_request.scheduled_date|default:"—" }}</dd>
-        {% if service_request.site %}<dt class="col-4">{% trans "Location" %}</dt><dd class="col-8">{{ service_request.site.label }} {{ service_request.site.city }}</dd>{% endif %}
-        {% if service_request.contact_name %}<dt class="col-4">{% trans "Contact" %}</dt><dd class="col-8">{{ service_request.contact_name }} {{ service_request.contact_phone }}</dd>{% endif %}
-        {% if service_request.notes %}<dt class="col-4">{% trans "Notes" %}</dt><dd class="col-8">{{ service_request.notes }}</dd>{% endif %}
+<div class="grid cols-3-2">
+  <div>
+    <div class="card card-pad" style="margin-bottom:18px">
+      <div style="margin-bottom:14px"><span class="pill s-{{ service_request.status }}">{% trans service_request.get_status_display %}</span>
+        <span class="pill p-{{ service_request.priority }}">{% trans service_request.get_priority_display %}</span></div>
+      <dl class="dl">
+        <dt>{% trans "Customer" %}</dt><dd>{{ service_request.customer.name }}</dd>
+        <dt>{% trans "Service" %}</dt><dd>{{ service_request.service_type.name }}</dd>
+        <dt>{% trans "Requested" %}</dt><dd>{{ service_request.requested_date|default:"—" }}</dd>
+        <dt>{% trans "Scheduled" %}</dt><dd>{{ service_request.scheduled_date|default:"—" }}</dd>
+        {% if service_request.site %}<dt>{% trans "Location" %}</dt><dd>{{ service_request.site.label }} {{ service_request.site.city }}</dd>{% endif %}
+        {% if service_request.contact_name %}<dt>{% trans "Contact" %}</dt><dd>{{ service_request.contact_name }} {{ service_request.contact_phone }}</dd>{% endif %}
+        {% if service_request.notes %}<dt>{% trans "Notes" %}</dt><dd>{{ service_request.notes }}</dd>{% endif %}
       </dl>
     </div>
 
     {% if can_write and transitions %}
-    <div class="card p-3">
-      <h2 class="h6">{% trans "Change status" %}</h2>
-      {% for t in transitions %}
-        <form method="post" action="{% url 'containers:servicerequest_transition' service_request.pk %}" class="d-flex align-items-center gap-2 mb-2">
-          {% csrf_token %}
-          <input type="hidden" name="to_status" value="{{ t.to_status }}">
-          {% if t.requires_note %}
-            <input type="text" name="note" class="form-control form-control-sm" placeholder="{% trans 'Reason (required)' %}" required>
-          {% endif %}
-          <button class="btn btn-sm btn-outline-primary">{% trans t.label %}</button>
-        </form>
-      {% endfor %}
+    <div class="panel">
+      <div class="panel-head">{% trans "Change status" %}</div>
+      <div class="panel-body">
+        {% for t in transitions %}
+          <form method="post" action="{% url 'containers:servicerequest_transition' service_request.pk %}" class="transition-row">
+            {% csrf_token %}
+            <input type="hidden" name="to_status" value="{{ t.to_status }}">
+            {% if t.requires_note %}<input type="text" name="note" placeholder="{% trans 'Reason (required)' %}" required>{% endif %}
+            <button class="btn btn-ghost btn-sm">{% trans t.label %} →</button>
+          </form>
+        {% endfor %}
+      </div>
     </div>
     {% endif %}
   </div>
 
-  <div class="col-lg-5">
-    <div class="card p-3">
-      <h2 class="h6">{% trans "Activity" %}</h2>
-      <ul class="list-unstyled mb-0">
+  <div class="panel">
+    <div class="panel-head">{% trans "Activity" %}</div>
+    <div class="panel-body">
+      <ul class="timeline">
         {% for a in activities %}
-          <li class="border-bottom py-2 small"><span class="text-muted">{{ a.created|date:"Y-m-d H:i" }}</span> — {{ a.description }}</li>
+          <li><div class="when">{{ a.created|date:"Y-m-d H:i" }}</div>{{ a.description }}</li>
         {% empty %}
-          <li class="text-muted">{% trans "No activity yet." %}</li>
+          <li class="muted">{% trans "No activity yet." %}</li>
         {% endfor %}
       </ul>
     </div>

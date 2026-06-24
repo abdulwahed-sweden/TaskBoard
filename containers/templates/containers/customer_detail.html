@@ -4,31 +4,30 @@
 {% block page_title %}{{ customer.name }}{% endblock %}
 
 {% block content %}
-<div class="card p-3 mb-3">
-  <dl class="row mb-0">
-    <dt class="col-4">{% trans "Number" %}</dt><dd class="col-8">{{ customer.customer_number }}</dd>
-    <dt class="col-4">{% trans "Email" %}</dt><dd class="col-8">{{ customer.email|default:"—" }}</dd>
-    <dt class="col-4">{% trans "Phone" %}</dt><dd class="col-8">{{ customer.phone|default:"—" }}</dd>
+<div class="card card-pad" style="margin-bottom:18px">
+  <dl class="dl">
+    <dt>{% trans "Number" %}</dt><dd>{{ customer.customer_number }}</dd>
+    <dt>{% trans "Email" %}</dt><dd>{{ customer.email|default:"—" }}</dd>
+    <dt>{% trans "Phone" %}</dt><dd>{{ customer.phone|default:"—" }}</dd>
   </dl>
 </div>
 
-<div class="row g-3">
-  <div class="col-lg-6">
-    <div class="card p-3">
-      <h2 class="h6">{% trans "Sites" %}</h2>
-      <ul class="list-unstyled mb-0">
-        {% for s in sites %}<li>{{ s.label }} — {{ s.street }} {{ s.city }}</li>{% empty %}<li class="text-muted">{% trans "No sites." %}</li>{% endfor %}
-      </ul>
+<div class="grid cols-2">
+  <div class="panel">
+    <div class="panel-head">{% trans "Sites" %}</div>
+    <div class="panel-body">
+      {% for s in sites %}<div>{{ s.label }} — {{ s.street }} {{ s.city }}</div>{% empty %}<p class="muted">{% trans "No sites." %}</p>{% endfor %}
     </div>
   </div>
-  <div class="col-lg-6">
-    <div class="card p-3">
-      <h2 class="h6">{% trans "Recent requests" %}</h2>
-      <ul class="list-unstyled mb-0">
-        {% for sr in requests %}
-          <li><a href="{% url 'containers:servicerequest_detail' sr.pk %}">{{ sr.reference }}</a> — {% trans sr.get_status_display %}</li>
-        {% empty %}<li class="text-muted">{% trans "No requests." %}</li>{% endfor %}
-      </ul>
+  <div class="panel">
+    <div class="panel-head">{% trans "Recent requests" %}</div>
+    <div class="panel-body">
+      {% for sr in requests %}
+        <div style="display:flex;justify-content:space-between;padding:4px 0">
+          <a href="{% url 'containers:servicerequest_detail' sr.pk %}">{{ sr.reference }}</a>
+          <span class="pill s-{{ sr.status }}">{% trans sr.get_status_display %}</span>
+        </div>
+      {% empty %}<p class="muted">{% trans "No requests." %}</p>{% endfor %}
     </div>
   </div>
 </div>

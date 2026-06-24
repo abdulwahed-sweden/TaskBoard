@@ -4,19 +4,19 @@
 {% block page_title %}{% trans "Customers" %}{% endblock %}
 
 {% block content %}
-<div class="card">
-  <table class="table table-hover mb-0">
+<div class="panel">
+  <table class="table">
     <thead><tr><th>{% trans "Name" %}</th><th>{% trans "Number" %}</th><th>{% trans "Phone" %}</th><th>{% trans "Active" %}</th></tr></thead>
     <tbody>
       {% for c in customers %}
         <tr>
-          <td><a href="{% url 'containers:customer_detail' c.pk %}">{{ c.name }}</a></td>
+          <td><a href="{% url 'containers:customer_detail' c.pk %}"><strong>{{ c.name }}</strong></a></td>
           <td>{{ c.customer_number }}</td>
           <td>{{ c.phone|default:"—" }}</td>
-          <td>{% if c.is_active %}{% trans "Yes" %}{% else %}{% trans "No" %}{% endif %}</td>
+          <td>{% if c.is_active %}<span class="pill s-completed">{% trans "Yes" %}</span>{% else %}<span class="pill s-cancelled">{% trans "No" %}</span>{% endif %}</td>
         </tr>
       {% empty %}
-        <tr><td colspan="4" class="text-muted p-3">{% trans "No customers yet. Add them via the admin or import." %}</td></tr>
+        <tr><td colspan="4"><div class="empty"><div class="big">☻</div>{% trans "No customers yet. Add them via the admin or import." %}</div></td></tr>
       {% endfor %}
     </tbody>
   </table>
