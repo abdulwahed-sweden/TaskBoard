@@ -1,0 +1,182 @@
+/* ======================================================================
+   TaskBoard Ops — professional admin theme.
+   Overrides Django admin's CSS variables (all themes) plus targeted polish.
+   ====================================================================== */
+
+:root,
+html[data-theme="light"],
+html[data-theme="dark"] {
+  /* palette */
+  --primary: #4f46e5;
+  --primary-fg: #ffffff;
+  --secondary: #4338ca;
+  --accent: #4f46e5;
+
+  --body-fg: #0f172a;
+  --body-bg: #eef1f6;
+  --body-quiet-color: #64748b;
+  --body-medium-color: #475569;
+  --body-loud-color: #0f172a;
+
+  --header-color: #e2e8f0;
+  --header-branding-color: #ffffff;
+  --header-bg: #0b1220;
+  --header-link-color: #ffffff;
+
+  --breadcrumbs-fg: #cbd5e1;
+  --breadcrumbs-link-fg: #e2e8f0;
+  --breadcrumbs-bg: #1e293b;
+
+  --link-fg: #4338ca;
+  --link-hover-color: #3730a3;
+  --link-selected-fg: #4f46e5;
+
+  --hairline-color: #e5e9f0;
+  --border-color: #e2e8f0;
+
+  --button-fg: #ffffff;
+  --button-bg: #4f46e5;
+  --button-hover-bg: #4338ca;
+  --default-button-bg: #4f46e5;
+  --default-button-hover-bg: #4338ca;
+  --close-button-bg: #64748b;
+  --close-button-hover-bg: #475569;
+  --delete-button-bg: #dc2626;
+  --delete-button-hover-bg: #b91c1c;
+
+  --object-tools-fg: #ffffff;
+  --object-tools-bg: #4f46e5;
+  --object-tools-hover-bg: #4338ca;
+
+  --selected-bg: #eef2ff;
+  --selected-row: #eef2ff;
+  --darkened-bg: #f1f5f9;
+
+  --message-success-bg: #ecfdf5;
+  --message-warning-bg: #fffbeb;
+  --message-error-bg: #fef2f2;
+
+  --font-family-primary: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+}
+
+/* ---- shell -------------------------------------------------------------- */
+
+body { font-family: var(--font-family-primary); color: var(--body-fg); background: var(--body-bg); }
+
+#header {
+  background: linear-gradient(90deg, #0b1220 0%, #131f38 100%);
+  padding: 16px 40px;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, .04);
+  color: #fff;
+}
+#branding h1 { font-weight: 700; letter-spacing: .2px; }
+#branding h1 a:hover { color: #fff; }
+.brand-dot {
+  display: inline-block; width: 22px; height: 22px; border-radius: 7px;
+  background: linear-gradient(135deg, #6366f1, #22d3ee); vertical-align: -4px; margin-right: 10px;
+}
+#user-tools { font-size: .8rem; text-transform: none; letter-spacing: normal; }
+#user-tools a { border-bottom: none; font-weight: 600; }
+
+div.breadcrumbs { padding: 11px 40px; font-size: .82rem; }
+div.breadcrumbs a:hover { color: #fff; }
+
+#content { padding: 28px 40px; }
+
+/* ---- modules / cards ---------------------------------------------------- */
+
+.module {
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(15,23,42,.04), 0 10px 30px -18px rgba(15,23,42,.25);
+  overflow: hidden;
+  margin-bottom: 22px;
+}
+.module > h2, .module caption, .inline-group h2 {
+  background: #f8fafc;
+  color: var(--body-loud-color);
+  font-size: .78rem; font-weight: 700; letter-spacing: .6px; text-transform: uppercase;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.dashboard #content { max-width: 1100px; margin: 0 auto; }
+.dashboard .module table th { width: auto; }
+.dashboard .module table td a { font-weight: 600; }
+
+/* app index cards on the dashboard */
+.dashboard #content-main .app-tasks,
+.dashboard #content-main > .module { }
+
+/* ---- tables / change list ---------------------------------------------- */
+
+#changelist .results { border-radius: 12px; overflow: hidden; border: 1px solid var(--border-color); box-shadow: var(--shadow); }
+#changelist table thead th {
+  background: #f8fafc; color: var(--body-quiet-color);
+  font-size: .72rem; text-transform: uppercase; letter-spacing: .5px; font-weight: 700;
+  border-bottom: 1px solid var(--border-color);
+}
+#changelist table tbody tr:hover { background: #f8fafc; }
+#changelist table tbody td, #changelist table tbody th { border-bottom: 1px solid var(--hairline-color); padding: 10px 12px; }
+
+#changelist-filter { border-radius: 12px; background: #fff; border: 1px solid var(--border-color); }
+#changelist-filter h2 { border-radius: 12px 12px 0 0; }
+#changelist-filter li.selected a { color: var(--primary); font-weight: 600; }
+
+/* ---- toolbar / object tools (Add, History…) ---------------------------- */
+
+.object-tools a, .object-tools a:link, .object-tools a:visited {
+  border-radius: 999px; padding: 7px 15px; font-weight: 600; font-size: .8rem;
+  text-transform: none; letter-spacing: normal; box-shadow: 0 6px 16px -8px rgba(79,70,229,.6);
+}
+#toolbar { background: #fff; border: 1px solid var(--border-color); border-radius: 12px; padding: 12px 14px; }
+#toolbar input[type="submit"] { border-radius: 9px; }
+
+/* ---- buttons ------------------------------------------------------------ */
+
+.button, input[type=submit], input[type=button], .submit-row input, a.button {
+  border-radius: 10px; padding: 9px 16px; font-weight: 600; border: 1px solid transparent;
+}
+.button:hover, input[type=submit]:hover { box-shadow: 0 6px 16px -8px rgba(79,70,229,.6); }
+.button.default, input[type=submit].default { font-weight: 700; }
+.submit-row { border-radius: 12px; border: 1px solid var(--border-color); background: #fff; padding: 14px 16px; }
+.deletelink { background: var(--delete-button-bg); }
+
+/* ---- forms -------------------------------------------------------------- */
+
+.form-row { padding: 12px 14px; border-bottom: 1px solid var(--hairline-color); }
+fieldset.module { padding-bottom: 4px; }
+input[type=text], input[type=password], input[type=email], input[type=url],
+input[type=number], input[type=tel], textarea, select, .vTextField {
+  border: 1px solid #cbd5e1; border-radius: 9px; padding: 8px 10px;
+}
+input:focus, textarea:focus, select:focus, .vTextField:focus {
+  outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px #e0e7ff;
+}
+.help, .helptext { color: var(--body-quiet-color); }
+
+/* ---- login -------------------------------------------------------------- */
+
+body.login #container {
+  border-radius: 16px; border: 1px solid var(--border-color);
+  box-shadow: 0 24px 60px -24px rgba(15,23,42,.35); overflow: hidden; margin-top: 6vh;
+}
+body.login #header { border-radius: 0; }
+body.login .submit-row { border: none; padding: 0; }
+body.login .submit-row input { width: 100%; padding: 11px; }
+
+/* ---- messages ----------------------------------------------------------- */
+
+ul.messagelist li { border-radius: 10px; border: 1px solid; padding: 11px 14px 11px 40px; }
+ul.messagelist li.success { border-color: #a7f3d0; }
+ul.messagelist li.warning { border-color: #fde68a; }
+ul.messagelist li.error { border-color: #fecaca; }
+
+/* ---- pagination & misc -------------------------------------------------- */
+
+.paginator a, .paginator .this-page { border-radius: 8px; padding: 4px 10px; }
+.paginator a:link, .paginator a:visited { background: #fff; border: 1px solid var(--border-color); }
+.paginator .this-page { background: var(--primary); }
+a.section, a.section:link { color: #fff; }
