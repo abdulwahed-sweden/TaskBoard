@@ -93,8 +93,8 @@ class DriverSerializer(OrgScopedSerializer):
     class Meta:
         model = models.Driver
         fields = [
-            "id", "organization", "user", "name", "phone", "license_class",
-            "is_active", "created",
+            "id", "organization", "user", "name", "phone", "email",
+            "license_class", "is_active", "created",
         ]
         read_only_fields = ["created"]
 

@@ -178,6 +178,7 @@ class Driver(models.Model):
     )
     name = models.CharField(max_length=120)
     phone = models.CharField(max_length=40, blank=True, default="")
+    email = models.EmailField(blank=True, default="")
     license_class = models.CharField(max_length=40, blank=True, default="")
     is_active = models.BooleanField(default=True)
     created = models.DateTimeField(auto_now_add=True, editable=False)
