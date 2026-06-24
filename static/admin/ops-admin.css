@@ -1,56 +1,62 @@
 /* ======================================================================
-   TaskBoard Ops — professional admin theme.
-   Overrides Django admin's CSS variables (all themes) plus targeted polish.
+   TaskBoard admin theme — clean, high-contrast, readable.
+   Forces a single light theme, larger type, conventional colors.
    ====================================================================== */
 
+/* Force light regardless of OS setting, and apply the palette to every theme
+   so the dark-mode toggle can never produce odd low-contrast combinations. */
 :root,
-html[data-theme="light"],
-html[data-theme="dark"] {
-  /* palette */
-  --primary: #4f46e5;
+:root[data-theme="light"],
+:root[data-theme="dark"],
+html { color-scheme: light; }
+
+:root,
+:root[data-theme="light"],
+:root[data-theme="dark"] {
+  --primary: #2563eb;
   --primary-fg: #ffffff;
-  --secondary: #4338ca;
-  --accent: #4f46e5;
+  --secondary: #1d4ed8;
+  --accent: #2563eb;
 
-  --body-fg: #0f172a;
-  --body-bg: #eef1f6;
-  --body-quiet-color: #64748b;
-  --body-medium-color: #475569;
-  --body-loud-color: #0f172a;
+  --body-fg: #111827;
+  --body-bg: #f3f4f6;
+  --body-quiet-color: #6b7280;
+  --body-medium-color: #374151;
+  --body-loud-color: #111827;
 
-  --header-color: #e2e8f0;
+  --header-color: #e5e7eb;
   --header-branding-color: #ffffff;
-  --header-bg: #0b1220;
+  --header-bg: #111827;
   --header-link-color: #ffffff;
 
-  --breadcrumbs-fg: #cbd5e1;
-  --breadcrumbs-link-fg: #e2e8f0;
-  --breadcrumbs-bg: #1e293b;
+  --breadcrumbs-fg: #d1d5db;
+  --breadcrumbs-link-fg: #ffffff;
+  --breadcrumbs-bg: #1f2937;
 
-  --link-fg: #4338ca;
-  --link-hover-color: #3730a3;
-  --link-selected-fg: #4f46e5;
+  --link-fg: #2563eb;
+  --link-hover-color: #1d4ed8;
+  --link-selected-fg: #1d4ed8;
 
-  --hairline-color: #e5e9f0;
-  --border-color: #e2e8f0;
+  --hairline-color: #eef0f3;
+  --border-color: #e5e7eb;
 
   --button-fg: #ffffff;
-  --button-bg: #4f46e5;
-  --button-hover-bg: #4338ca;
-  --default-button-bg: #4f46e5;
-  --default-button-hover-bg: #4338ca;
-  --close-button-bg: #64748b;
-  --close-button-hover-bg: #475569;
+  --button-bg: #2563eb;
+  --button-hover-bg: #1d4ed8;
+  --default-button-bg: #2563eb;
+  --default-button-hover-bg: #1d4ed8;
+  --close-button-bg: #6b7280;
+  --close-button-hover-bg: #4b5563;
   --delete-button-bg: #dc2626;
   --delete-button-hover-bg: #b91c1c;
 
   --object-tools-fg: #ffffff;
-  --object-tools-bg: #4f46e5;
-  --object-tools-hover-bg: #4338ca;
+  --object-tools-bg: #2563eb;
+  --object-tools-hover-bg: #1d4ed8;
 
-  --selected-bg: #eef2ff;
-  --selected-row: #eef2ff;
-  --darkened-bg: #f1f5f9;
+  --selected-bg: #eff6ff;
+  --selected-row: #eff6ff;
+  --darkened-bg: #f3f4f6;
 
   --message-success-bg: #ecfdf5;
   --message-warning-bg: #fffbeb;
@@ -60,123 +66,134 @@ html[data-theme="dark"] {
     "Helvetica Neue", Arial, sans-serif;
 }
 
-/* ---- shell -------------------------------------------------------------- */
+/* ---- base typography (bigger & clearer) -------------------------------- */
 
-body { font-family: var(--font-family-primary); color: var(--body-fg); background: var(--body-bg); }
+html { font-size: 16px; }
+body {
+  font-family: var(--font-family-primary);
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--body-fg);
+  background: var(--body-bg);
+}
+p, td, th, li, label, .help, input, select, textarea, .button, a.button { font-size: 15px; }
+a { color: var(--link-fg); }
+
+/* ---- header ------------------------------------------------------------- */
 
 #header {
-  background: linear-gradient(90deg, #0b1220 0%, #131f38 100%);
-  padding: 16px 40px;
-  box-shadow: 0 1px 0 rgba(255, 255, 255, .04);
-  color: #fff;
+  background: var(--header-bg);
+  padding: 18px 40px;
+  align-items: center;
 }
-#branding h1 { font-weight: 700; letter-spacing: .2px; }
-#branding h1 a:hover { color: #fff; }
+#branding h1 { font-size: 22px; font-weight: 700; margin: 0; }
+#branding h1 a { color: #fff; }
 .brand-dot {
-  display: inline-block; width: 22px; height: 22px; border-radius: 7px;
-  background: linear-gradient(135deg, #6366f1, #22d3ee); vertical-align: -4px; margin-right: 10px;
+  display: inline-block; width: 20px; height: 20px; border-radius: 6px;
+  background: #2563eb; vertical-align: -3px; margin-right: 10px;
 }
-#user-tools { font-size: .8rem; text-transform: none; letter-spacing: normal; }
+#user-tools { font-size: 14px; text-transform: none; letter-spacing: normal; line-height: 1.6; }
 #user-tools a { border-bottom: none; font-weight: 600; }
 
-div.breadcrumbs { padding: 11px 40px; font-size: .82rem; }
-div.breadcrumbs a:hover { color: #fff; }
+div.breadcrumbs { background: var(--breadcrumbs-bg); padding: 12px 40px; font-size: 14px; }
 
-#content { padding: 28px 40px; }
+#content, #content-main { font-size: 15px; }
+#content { padding: 30px 40px; }
+h1 { font-size: 24px; }
+.dashboard #content { max-width: 1080px; margin: 0 auto; }
 
 /* ---- modules / cards ---------------------------------------------------- */
 
 .module {
   border: 1px solid var(--border-color);
-  border-radius: 14px;
+  border-radius: 12px;
   background: #fff;
-  box-shadow: 0 1px 2px rgba(15,23,42,.04), 0 10px 30px -18px rgba(15,23,42,.25);
+  box-shadow: 0 1px 2px rgba(17,24,39,.05), 0 12px 28px -20px rgba(17,24,39,.25);
   overflow: hidden;
-  margin-bottom: 22px;
+  margin-bottom: 24px;
 }
-.module > h2, .module caption, .inline-group h2 {
-  background: #f8fafc;
-  color: var(--body-loud-color);
-  font-size: .78rem; font-weight: 700; letter-spacing: .6px; text-transform: uppercase;
-  padding: 12px 16px;
+.module > h2, .module caption, .inline-group h2, fieldset .module > h2 {
+  background: #f9fafb;
+  color: #111827;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+  padding: 14px 18px;
   border-bottom: 1px solid var(--border-color);
 }
 
-.dashboard #content { max-width: 1100px; margin: 0 auto; }
-.dashboard .module table th { width: auto; }
-.dashboard .module table td a { font-weight: 600; }
+/* ---- change list tables ------------------------------------------------- */
 
-/* app index cards on the dashboard */
-.dashboard #content-main .app-tasks,
-.dashboard #content-main > .module { }
-
-/* ---- tables / change list ---------------------------------------------- */
-
-#changelist .results { border-radius: 12px; overflow: hidden; border: 1px solid var(--border-color); box-shadow: var(--shadow); }
+#changelist .results { border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden; }
+table { font-size: 15px; }
 #changelist table thead th {
-  background: #f8fafc; color: var(--body-quiet-color);
-  font-size: .72rem; text-transform: uppercase; letter-spacing: .5px; font-weight: 700;
+  background: #f9fafb;
+  color: #374151;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: 0;
+  padding: 12px 14px;
   border-bottom: 1px solid var(--border-color);
 }
-#changelist table tbody tr:hover { background: #f8fafc; }
-#changelist table tbody td, #changelist table tbody th { border-bottom: 1px solid var(--hairline-color); padding: 10px 12px; }
+#changelist table thead th a { color: #374151; }
+#changelist table tbody td, #changelist table tbody th { padding: 12px 14px; border-bottom: 1px solid var(--hairline-color); }
+#changelist table tbody tr:hover { background: #f9fafb; }
 
-#changelist-filter { border-radius: 12px; background: #fff; border: 1px solid var(--border-color); }
-#changelist-filter h2 { border-radius: 12px 12px 0 0; }
-#changelist-filter li.selected a { color: var(--primary); font-weight: 600; }
+#changelist-filter { background: #fff; border: 1px solid var(--border-color); border-radius: 12px; }
+#changelist-filter h2 { font-size: 13px; padding: 12px 14px; }
+#changelist-filter li.selected a { color: var(--primary); font-weight: 700; }
+#toolbar { background: #fff; border: 1px solid var(--border-color); border-radius: 12px; padding: 12px 14px; }
+#toolbar #searchbar { font-size: 15px; padding: 9px 12px; }
 
-/* ---- toolbar / object tools (Add, History…) ---------------------------- */
+/* ---- object tools (Add / History) -------------------------------------- */
 
 .object-tools a, .object-tools a:link, .object-tools a:visited {
-  border-radius: 999px; padding: 7px 15px; font-weight: 600; font-size: .8rem;
-  text-transform: none; letter-spacing: normal; box-shadow: 0 6px 16px -8px rgba(79,70,229,.6);
+  border-radius: 999px; padding: 8px 16px; font-size: 13px; font-weight: 600;
+  text-transform: none; letter-spacing: 0;
 }
-#toolbar { background: #fff; border: 1px solid var(--border-color); border-radius: 12px; padding: 12px 14px; }
-#toolbar input[type="submit"] { border-radius: 9px; }
 
 /* ---- buttons ------------------------------------------------------------ */
 
 .button, input[type=submit], input[type=button], .submit-row input, a.button {
-  border-radius: 10px; padding: 9px 16px; font-weight: 600; border: 1px solid transparent;
+  border-radius: 10px; padding: 10px 18px; font-size: 15px; font-weight: 600;
+  border: 1px solid transparent;
 }
-.button:hover, input[type=submit]:hover { box-shadow: 0 6px 16px -8px rgba(79,70,229,.6); }
-.button.default, input[type=submit].default { font-weight: 700; }
-.submit-row { border-radius: 12px; border: 1px solid var(--border-color); background: #fff; padding: 14px 16px; }
-.deletelink { background: var(--delete-button-bg); }
+.submit-row { background: #fff; border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; }
+.deletelink, .deletelink:link { background: var(--delete-button-bg); color: #fff; }
 
-/* ---- forms -------------------------------------------------------------- */
+/* ---- forms (clear, roomy) ---------------------------------------------- */
 
-.form-row { padding: 12px 14px; border-bottom: 1px solid var(--hairline-color); }
-fieldset.module { padding-bottom: 4px; }
+.form-row { padding: 14px 16px; border-bottom: 1px solid var(--hairline-color); }
+.form-row > div { line-height: 1.6; }
+label { font-size: 14px; font-weight: 600; color: #374151; }
+.aligned label { width: 200px; }
 input[type=text], input[type=password], input[type=email], input[type=url],
 input[type=number], input[type=tel], textarea, select, .vTextField {
-  border: 1px solid #cbd5e1; border-radius: 9px; padding: 8px 10px;
+  font-size: 15px; padding: 9px 11px; border: 1px solid #cbd5e1; border-radius: 9px;
+  color: #111827; background: #fff;
 }
 input:focus, textarea:focus, select:focus, .vTextField:focus {
-  outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px #e0e7ff;
+  outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px #dbeafe;
 }
-.help, .helptext { color: var(--body-quiet-color); }
+.help, .helptext, p.help { font-size: 13px; color: var(--body-quiet-color); }
 
 /* ---- login -------------------------------------------------------------- */
 
+body.login { background: #f3f4f6; }
 body.login #container {
   border-radius: 16px; border: 1px solid var(--border-color);
-  box-shadow: 0 24px 60px -24px rgba(15,23,42,.35); overflow: hidden; margin-top: 6vh;
+  box-shadow: 0 24px 60px -28px rgba(17,24,39,.4); overflow: hidden; margin-top: 7vh;
 }
-body.login #header { border-radius: 0; }
+body.login #content { padding: 26px; }
 body.login .submit-row { border: none; padding: 0; }
-body.login .submit-row input { width: 100%; padding: 11px; }
+body.login .submit-row input { width: 100%; padding: 12px; font-size: 15px; }
 
-/* ---- messages ----------------------------------------------------------- */
+/* ---- messages / pagination --------------------------------------------- */
 
-ul.messagelist li { border-radius: 10px; border: 1px solid; padding: 11px 14px 11px 40px; }
-ul.messagelist li.success { border-color: #a7f3d0; }
-ul.messagelist li.warning { border-color: #fde68a; }
-ul.messagelist li.error { border-color: #fecaca; }
-
-/* ---- pagination & misc -------------------------------------------------- */
-
-.paginator a, .paginator .this-page { border-radius: 8px; padding: 4px 10px; }
-.paginator a:link, .paginator a:visited { background: #fff; border: 1px solid var(--border-color); }
-.paginator .this-page { background: var(--primary); }
+ul.messagelist li { font-size: 14px; border-radius: 10px; border: 1px solid #e5e7eb; padding: 12px 16px 12px 40px; }
+.paginator { font-size: 14px; }
+.paginator a:link, .paginator a:visited { background: #fff; border: 1px solid var(--border-color); border-radius: 8px; padding: 5px 11px; }
+.paginator .this-page { background: var(--primary); border-radius: 8px; padding: 5px 11px; }
 a.section, a.section:link { color: #fff; }
