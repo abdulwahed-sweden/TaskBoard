@@ -60,18 +60,24 @@ html { color-scheme: light; }
     "Helvetica Neue", Arial, sans-serif;
 }
 
-/* ---- base typography (clearly larger) ---------------------------------- */
+/* ---- base typography ----------------------------------------------------
+   Django admin is fully rem-based (body 0.875rem, many elements 0.6875rem ≈
+   11px) scaled from the root, so bumping the ROOT enlarges the whole UI at once
+   instead of fighting it element by element. */
 
-html { font-size: 16px; }
+html { font-size: 19px; }
 body {
   font-family: var(--font-family-primary);
-  font-size: 16px;
-  line-height: 1.65;
+  font-size: 0.9rem;          /* ~17px */
+  line-height: 1.6;
   color: var(--body-fg);
   background: var(--body-bg);
 }
 p, td, th, li, input, select, textarea, .button, a.button, .vTextField,
-#content, #content-main { font-size: 16px; }
+#content, #content-main, .form-row, .help, .helptext { font-size: 0.9rem; }
+/* lift the very small Django defaults to a readable floor */
+.object-tools a, #changelist table thead th, div.breadcrumbs,
+.paginator, ul.messagelist li, .help, .helptext { font-size: 0.82rem; }
 a { color: var(--link-fg); }
 
 /* ---- header ------------------------------------------------------------- */
